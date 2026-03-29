@@ -42,7 +42,28 @@ curl -sL "$URL" | tar xz -C "$TMP"
 mkdir -p "$INSTALL_DIR"
 install -m 755 "$TMP/scoria" "$INSTALL_DIR/scoria"
 
+SCORIA_BIN="${INSTALL_DIR}/scoria"
 echo "Done. Run 'scoria --version' to verify."
+
+# Pre-built binary links libxdo (tray/menu); runtime is separate from build deps.
+if [[ "$OS" == "Linux" ]] && ! "$SCORIA_BIN" --version >/dev/null 2>&1; then
+	echo ""
+	echo "scoria did not start (often missing libxdo). Install the runtime library, e.g.:"
+	if [[ -r /etc/os-release ]]; then
+		# shellcheck source=/dev/null
+		. /etc/os-release
+		case "${ID:-}" in
+			arch | endeavouros | manjaro) echo "  sudo pacman -S libxdo" ;;
+			debian | ubuntu | pop | linuxmint | zorin) echo "  sudo apt install libxdo3" ;;
+			fedora | rhel | centos | rocky | almalinux) echo "  sudo dnf install libXdo" ;;
+			*) echo "  Install the package providing libxdo.so.3 (e.g. xdotool, or libxdo / libxdo3 / libXdo)." ;;
+		esac
+	else
+		echo "  Arch: sudo pacman -S libxdo"
+		echo "  Debian/Ubuntu: sudo apt install libxdo3"
+		echo "  Fedora: sudo dnf install libXdo"
+	fi
+fi
 
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
   echo ""

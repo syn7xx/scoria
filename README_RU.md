@@ -30,6 +30,8 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 
 Или вручную со страницы [Releases](https://github.com/syn7xx/scoria/releases).
 
+**Среда выполнения на Linux (готовый бинарник):** сборка из релиза линкуется с **`libxdo`** (трей). Поставьте соответствующий пакет до или после `install.sh`, например **`libxdo`** в Arch, **`libxdo3`** в Debian/Ubuntu, **`libXdo`** в Fedora — или **`xdotool`**, обычно подтягивает зависимость. Иначе возможна ошибка `libxdo.so.3: cannot open shared object file`.
+
 ### Через cargo
 
 ```bash
@@ -53,6 +55,24 @@ cargo install --git https://github.com/syn7xx/scoria.git
 #### macOS
 
 Дополнительных зависимостей не нужно — всё через нативные API.
+
+## Удаление
+
+Удаляет бинарник в `~/.local/bin`, иконки и `.desktop` на Linux, конфиг (`~/.config/scoria` на Linux, `~/Library/Application Support/scoria` на macOS) и автозапуск. По возможности завершает запущенный `scoria`.
+
+Из клона репозитория:
+
+```bash
+./uninstall.sh
+```
+
+Одной командой (как при установке через `install.sh`):
+
+```bash
+curl -sL https://github.com/syn7xx/scoria/raw/main/uninstall.sh | bash
+```
+
+Если ставили через `make install`, можно выполнить `make uninstall` (только бинарник, иконки и ярлык; полное удаление с конфигом и автозапуском — скриптом выше).
 
 ## Быстрый старт
 

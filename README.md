@@ -30,6 +30,8 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 
 Or download manually from the [Releases](https://github.com/syn7xx/scoria/releases) page.
 
+**Linux runtime (pre-built binary):** the release tarball links **`libxdo`** (used by the tray). Install the matching package before or after `install.sh`, e.g. **`libxdo`** on Arch, **`libxdo3`** on Debian/Ubuntu, **`libXdo`** on Fedora — or install **`xdotool`**, which usually pulls it in. Without it you may see `error while loading shared libraries: libxdo.so.3`.
+
 ### With cargo
 
 ```bash
@@ -53,6 +55,24 @@ This installs only the binary. On Linux you'll need system libraries installed f
 #### macOS
 
 No extra dependencies — everything uses native APIs.
+
+## Uninstall
+
+Removes the binary under `~/.local/bin`, Linux menu icons / `.desktop` entries, config (`~/.config/scoria` on Linux, `~/Library/Application Support/scoria` on macOS), and autostart entries. Stops a running `scoria` if possible.
+
+From the repository clone:
+
+```bash
+./uninstall.sh
+```
+
+Or one command (same as `install.sh` style):
+
+```bash
+curl -sL https://github.com/syn7xx/scoria/raw/main/uninstall.sh | bash
+```
+
+If you installed with `make install`, you can also run `make uninstall` (binary + icons + launcher only; use the script above to drop config and autostart).
 
 ## Quick start
 
