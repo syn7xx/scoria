@@ -1,0 +1,43 @@
+[package]
+name = "scoria"
+version = "0.1.0"
+edition = "2024"
+description = "Save clipboard content (text & images) to an Obsidian vault — system tray + CLI (Linux & macOS)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/syn7xx/scoria"
+homepage = "https://github.com/syn7xx/scoria"
+readme = "README.md"
+keywords = ["obsidian", "clipboard", "tray"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = "1"
+arboard = "3"
+chrono = "0.4"
+clap = { version = "4", features = ["derive"] }
+dirs = "5"
+global-hotkey = "0.7"
+png = "0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tao = "0.30"
+toml = "0.8"
+tray-icon = "0.21"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+glib = "0.18"
+gtk = "0.18"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6.2", default-features = false, features = ["std"] }
+objc2-app-kit = "0.3.2"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+    "alloc",
+    "objc2-core-foundation",
+    "NSGeometry",
+    "NSArray",
+    "NSNotification",
+    "NSObject",
+    "NSString",
+    "NSURL",
+] }

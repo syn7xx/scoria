@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Scoria
+Comment=Save clipboard to Obsidian vault
+Exec=scoria run
+Icon=scoria
+Terminal=false
+Categories=Utility;
+StartupNotify=false
