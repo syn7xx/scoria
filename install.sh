@@ -43,26 +43,14 @@ mkdir -p "$INSTALL_DIR"
 install -m 755 "$TMP/scoria" "$INSTALL_DIR/scoria"
 
 SCORIA_BIN="${INSTALL_DIR}/scoria"
+
 echo "Done. Run 'scoria --version' to verify."
 
-# Pre-built binary links libxdo (tray/menu); runtime is separate from build deps.
 if [[ "$OS" == "Linux" ]] && ! "$SCORIA_BIN" --version >/dev/null 2>&1; then
 	echo ""
-	echo "scoria did not start (often missing libxdo). Install the runtime library, e.g.:"
-	if [[ -r /etc/os-release ]]; then
-		# shellcheck source=/dev/null
-		. /etc/os-release
-		case "${ID:-}" in
-			arch | endeavouros | manjaro) echo "  sudo pacman -S libxdo" ;;
-			debian | ubuntu | pop | linuxmint | zorin) echo "  sudo apt install libxdo3" ;;
-			fedora | rhel | centos | rocky | almalinux) echo "  sudo dnf install libXdo" ;;
-			*) echo "  Install the package providing libxdo.so.3 (e.g. xdotool, or libxdo / libxdo3 / libXdo)." ;;
-		esac
-	else
-		echo "  Arch: sudo pacman -S libxdo"
-		echo "  Debian/Ubuntu: sudo apt install libxdo3"
-		echo "  Fedora: sudo dnf install libXdo"
-	fi
+	echo "ERROR: scoria did not start. Missing shared library:"
+	ldd "$SCORIA_BIN" 2>/dev/null | grep "not found" || true
+	echo "Try rebuilding from source: git clone https://github.com/syn7xx/scoria.git && cd scoria && make deps && make install"
 fi
 
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then

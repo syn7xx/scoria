@@ -30,8 +30,6 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 
 Или вручную со страницы [Releases](https://github.com/syn7xx/scoria/releases).
 
-**Среда выполнения на Linux (готовый бинарник):** сборка из релиза линкуется с **`libxdo`** (трей). Поставьте соответствующий пакет до или после `install.sh`, например **`libxdo`** в Arch, **`libxdo3`** в Debian/Ubuntu, **`libXdo`** в Fedora — или **`xdotool`**, обычно подтягивает зависимость. Иначе возможна ошибка `libxdo.so.3: cannot open shared object file`.
-
 ### Через cargo
 
 ```bash

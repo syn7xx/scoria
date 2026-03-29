@@ -4,7 +4,7 @@ DATADIR ?= $(PREFIX)/share
 UNAME   := $(shell uname -s)
 REPO    := syn7xx/scoria
 
-.PHONY: all build deps install uninstall update check fmt clean
+.PHONY: all build deps install uninstall update check fmt clean changelog
 
 all: build
 
@@ -80,6 +80,21 @@ update:
 	install -m 755 /tmp/scoria "$(BINDIR)/scoria"; \
 	rm -f /tmp/scoria; \
 	echo "Updated to $$LATEST ($(BINDIR)/scoria)"
+
+# Update CHANGELOG.md from git history. Pass TAG= to preview a specific release.
+# Examples:
+#   make changelog              # regenerate full changelog
+#   make changelog TAG=v0.2.0   # preview what the next release will look like
+changelog:
+	@if ! command -v git-cliff >/dev/null 2>&1; then \
+		echo "Installing git-cliff..."; cargo install git-cliff; \
+	fi
+	@if [ -n "$(TAG)" ]; then \
+		git-cliff --tag "$(TAG)" --unreleased --strip all; \
+	else \
+		git-cliff --output CHANGELOG.md; \
+		echo "CHANGELOG.md updated."; \
+	fi
 
 check:
 	cargo clippy --all-targets -- -D warnings

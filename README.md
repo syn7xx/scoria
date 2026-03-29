@@ -30,8 +30,6 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 
 Or download manually from the [Releases](https://github.com/syn7xx/scoria/releases) page.
 
-**Linux runtime (pre-built binary):** the release tarball links **`libxdo`** (used by the tray). Install the matching package before or after `install.sh`, e.g. **`libxdo`** on Arch, **`libxdo3`** on Debian/Ubuntu, **`libXdo`** on Fedora — or install **`xdotool`**, which usually pulls it in. Without it you may see `error while loading shared libraries: libxdo.so.3`.
-
 ### With cargo
 
 ```bash
