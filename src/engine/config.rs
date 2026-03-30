@@ -109,7 +109,7 @@ pub fn save(config: &Config) -> Result<()> {
     let s = toml::to_string_pretty(config).context("serialize config")?;
     std::fs::write(&path, s).with_context(|| format!("write {}", path.display()))?;
 
-    crate::autostart::apply(config.autostart);
+    crate::engine::autostart::apply(config.autostart);
     Ok(())
 }
 
@@ -121,7 +121,10 @@ pub fn vault_ready(vault: &Path) -> Result<()> {
         bail!("{}", i18n::err_vault_path_empty(&cfg_path));
     }
     if !vault.exists() {
-        bail!("{}", i18n::err_vault_not_found(&vault.display().to_string()));
+        bail!(
+            "{}",
+            i18n::err_vault_not_found(&vault.display().to_string())
+        );
     }
     if !vault.is_dir() {
         bail!("{}", i18n::err_vault_not_dir(&vault.display().to_string()));

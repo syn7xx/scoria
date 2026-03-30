@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, bail};
 use chrono::Local;
 
-use crate::clipboard::Content;
-use crate::config::{Config, SaveTarget};
+use crate::engine::clipboard::Content;
+use crate::engine::config::{Config, SaveTarget};
 use crate::i18n;
 
 pub fn save(config: &Config, content: &Content) -> Result<PathBuf> {
-    crate::config::vault_ready(&config.vault_path)?;
+    crate::engine::config::vault_ready(&config.vault_path)?;
 
     match content {
         Content::Text(text) => save_text(config, text),
@@ -76,7 +76,7 @@ fn append_to_file(config: &Config, text: &str) -> Result<PathBuf> {
 
     write!(file, "{}", format_body(config, text))
         .with_context(|| format!("append {}", path.display()))?;
-        
+
     Ok(path)
 }
 
@@ -106,7 +106,7 @@ fn save_image(config: &Config, data: &[u8], ext: &str) -> Result<PathBuf> {
     } else {
         format!("{embed}\n")
     };
-    
+
     std::fs::write(&md_path, body).with_context(|| format!("write {}", md_path.display()))?;
 
     Ok(md_path)

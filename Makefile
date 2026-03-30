@@ -33,10 +33,16 @@ endif
 
 # Platform-specific install
 ifeq ($(UNAME),Darwin)
+MACOS_APP := $(HOME)/Applications/Scoria.app
 install: build
+	install -d "$(MACOS_APP)/Contents/MacOS"
+	install -d "$(MACOS_APP)/Contents/Resources"
+	install -m 644 assets/macos/Info.plist "$(MACOS_APP)/Contents/Info.plist"
+	install -m 644 assets/macos/Resources/scoria.icns "$(MACOS_APP)/Contents/Resources/scoria.icns"
+	install -m 755 target/release/scoria "$(MACOS_APP)/Contents/MacOS/scoria"
 	install -d "$(BINDIR)"
-	install -m 755 target/release/scoria "$(BINDIR)/scoria"
-	@echo "Installed scoria to $(BINDIR)/scoria"
+	ln -sf "$(MACOS_APP)/Contents/MacOS/scoria" "$(BINDIR)/scoria"
+	@echo "Installed $(MACOS_APP) and linked $(BINDIR)/scoria"
 	@echo "Add $(BINDIR) to PATH if not already present."
 else
 install: build
@@ -53,6 +59,7 @@ endif
 ifeq ($(UNAME),Darwin)
 uninstall:
 	rm -f "$(BINDIR)/scoria"
+	rm -rf "$(HOME)/Applications/Scoria.app"
 else
 uninstall:
 	rm -f "$(BINDIR)/scoria"
@@ -76,25 +83,29 @@ update:
 	URL="https://github.com/$(REPO)/releases/download/$$LATEST/$$ASSET"; \
 	echo "Downloading $$URL ..."; \
 	curl -sL "$$URL" | tar xz -C /tmp; \
-	install -d "$(BINDIR)"; \
-	install -m 755 /tmp/scoria "$(BINDIR)/scoria"; \
-	rm -f /tmp/scoria; \
-	echo "Updated to $$LATEST ($(BINDIR)/scoria)"
-
-# Update CHANGELOG.md from git history. Pass TAG= to preview a specific release.
-# Examples:
-#   make changelog              # regenerate full changelog
-#   make changelog TAG=v0.2.0   # preview what the next release will look like
-changelog:
-	@if ! command -v git-cliff >/dev/null 2>&1; then \
-		echo "Installing git-cliff..."; cargo install git-cliff; \
-	fi
-	@if [ -n "$(TAG)" ]; then \
-		git-cliff --tag "$(TAG)" --unreleased --strip all; \
+	if [ "$(UNAME)" = "Darwin" ] && [ -d "$(HOME)/Applications/Scoria.app/Contents" ]; then \
+		APP="$(HOME)/Applications/Scoria.app"; \
+		install -d "$$APP/Contents/MacOS" "$$APP/Contents/Resources"; \
+		install -m 755 /tmp/scoria "$$APP/Contents/MacOS/scoria"; \
+		curl -sLf "https://raw.githubusercontent.com/$(REPO)/$$LATEST/assets/macos/Resources/scoria.icns" \
+			-o "$$APP/Contents/Resources/scoria.icns" \
+			|| curl -sLf "https://raw.githubusercontent.com/$(REPO)/main/assets/macos/Resources/scoria.icns" \
+			-o "$$APP/Contents/Resources/scoria.icns" \
+			|| echo "Note: could not refresh scoria.icns; icon may stay old until next make install."; \
+		curl -sLf "https://raw.githubusercontent.com/$(REPO)/$$LATEST/assets/macos/Info.plist" \
+			-o "$$APP/Contents/Info.plist" \
+			|| curl -sLf "https://raw.githubusercontent.com/$(REPO)/main/assets/macos/Info.plist" \
+			-o "$$APP/Contents/Info.plist" \
+			|| echo "Note: could not refresh Info.plist; run make install from a clone to update metadata."; \
+		install -d "$(BINDIR)"; \
+		ln -sf "$$APP/Contents/MacOS/scoria" "$(BINDIR)/scoria"; \
+		echo "Updated $$LATEST: $$APP and $(BINDIR)/scoria"; \
 	else \
-		git-cliff --output CHANGELOG.md; \
-		echo "CHANGELOG.md updated."; \
-	fi
+		install -d "$(BINDIR)"; \
+		install -m 755 /tmp/scoria "$(BINDIR)/scoria"; \
+		echo "Updated to $$LATEST ($(BINDIR)/scoria)"; \
+	fi; \
+	rm -f /tmp/scoria
 
 check:
 	cargo clippy --all-targets -- -D warnings

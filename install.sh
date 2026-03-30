@@ -44,6 +44,56 @@ install -m 755 "$TMP/scoria" "$INSTALL_DIR/scoria"
 
 SCORIA_BIN="${INSTALL_DIR}/scoria"
 
+# User .app bundle so Spotlight / Launchpad can find "Scoria" (CLI-only install has no bundle metadata).
+if [[ "$OS" == "Darwin" ]]; then
+  APP="${HOME}/Applications/Scoria.app"
+  VER="${LATEST#v}"
+  mkdir -p "${APP}/Contents/MacOS"
+  mkdir -p "${APP}/Contents/Resources"
+  install -m 755 "$TMP/scoria" "${APP}/Contents/MacOS/scoria"
+  # Icon from repo (release archives may not include .icns).
+  if ! curl -sLf "https://raw.githubusercontent.com/${REPO}/${LATEST}/assets/macos/Resources/scoria.icns" \
+      -o "${APP}/Contents/Resources/scoria.icns"
+  then
+    curl -sLf "https://raw.githubusercontent.com/${REPO}/main/assets/macos/Resources/scoria.icns" \
+      -o "${APP}/Contents/Resources/scoria.icns" \
+      || echo "Warning: could not download scoria.icns; app icon in Launchpad may be generic."
+  fi
+  cat > "${APP}/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>scoria</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.syn7xx.scoria</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Scoria</string>
+	<key>CFBundleDisplayName</key>
+	<string>Scoria</string>
+	<key>CFBundleIconFile</key>
+	<string>scoria</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>${VER}</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>LSUIElement</key>
+	<true/>
+</dict>
+</plist>
+EOF
+  echo "Also installed ${APP} (Spotlight / Applications)."
+fi
+
 echo "Done. Run 'scoria --version' to verify."
 
 if [[ "$OS" == "Linux" ]] && ! "$SCORIA_BIN" --version >/dev/null 2>&1; then

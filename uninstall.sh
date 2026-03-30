@@ -34,6 +34,7 @@ Linux)
 	rm_path "${HOME}/.config/scoria"
 	;;
 Darwin)
+	rm_path "${HOME}/Applications/Scoria.app"
 	rm_path "${HOME}/Library/Application Support/scoria"
 	rm_path "${HOME}/Library/LaunchAgents/com.github.syn7xx.scoria.plist"
 	;;

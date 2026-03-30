@@ -111,7 +111,7 @@ fn asset_name() -> String {
     } else {
         "linux"
     };
-    
+
     let arch = if cfg!(target_arch = "aarch64") {
         "aarch64"
     } else {

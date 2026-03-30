@@ -1,12 +1,9 @@
+# GitHub Releases body (git-cliff): compact sections, no compare-link footer.
+# Usage: git-cliff -c cliff.github.toml --strip all -o NOTES -- PREV..TAG
+
 [changelog]
-header = """
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
-"""
+header = ""
+footer = ""
 body = """
 {% if version %}\
 ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
@@ -21,26 +18,10 @@ body = """
 {% endfor %}\
 {% endfor %}
 """
-footer = """
-
-{% for release in releases -%}
-{% if release.version -%}
-{% if release.previous.version -%}
-[{{ release.version | trim_start_matches(pat="v") }}]: \
-  https://github.com/syn7xx/scoria/compare/{{ release.previous.version }}...{{ release.version }}
-{% else -%}
-[{{ release.version | trim_start_matches(pat="v") }}]: \
-  https://github.com/syn7xx/scoria/releases/tag/{{ release.version }}
-{% endif -%}
-{% else -%}
-[Unreleased]: https://github.com/syn7xx/scoria/compare/{{ releases | map(attribute="version") | select | first }}...HEAD
-{% endif -%}
-{% endfor %}"""
-trim = true
 
 [git]
 conventional_commits = true
-filter_unconventional = false   # include non-conventional commits too
+filter_unconventional = false
 split_commits = false
 protect_breaking_commits = false
 filter_commits = false
@@ -50,8 +31,6 @@ ignore_tags = ""
 topo_order = false
 sort_commits = "oldest"
 
-# Map conventional commit types to changelog sections.
-# Non-conventional commits fall into "Other Changes".
 commit_parsers = [
   { message = "^feat",      group = "Added" },
   { message = "^add",       group = "Added" },

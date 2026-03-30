@@ -5,12 +5,10 @@
 //! 1. Add a variant to [`Lang`].
 //! 2. Create `src/i18n/xx.rs` with `pub(super) static XX: T = T { ... };`.
 //! 3. Add `mod xx;` and one match arm in [`tr()`].
-//! 4. Add one combo-box entry in `settings_gui.rs` / `settings_macos.rs`.
+//! 4. Add one combo-box entry in `ui/gtk.rs` / `ui/macos.rs`.
 //!
 //! Call [`apply`] with `Config.language` before building any UI.
 //! Falls back to system locale auto-detection on first use.
-
-#![allow(dead_code)]
 
 mod en;
 mod ru;

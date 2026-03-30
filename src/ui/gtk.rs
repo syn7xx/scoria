@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use gtk::glib::clone;
 use gtk::prelude::*;
 use gtk::{
@@ -8,7 +6,8 @@ use gtk::{
     PolicyType, ResponseType, ScrolledWindow, Separator, Window, WindowPosition, WindowType,
 };
 
-use crate::config::{self, Config, SaveTarget};
+use crate::engine::config::{self, SaveTarget};
+use crate::engine::settings::{self, SettingsDraft, SettingsValidationError};
 use crate::i18n;
 
 fn alert(parent: &Window, kind: MessageType, msg: &str) {
@@ -22,15 +21,6 @@ fn alert(parent: &Window, kind: MessageType, msg: &str) {
 
     d.run();
     d.close();
-}
-
-fn require_non_empty(parent: &Window, value: &str, message: &str) -> bool {
-    if value.is_empty() {
-        alert(parent, MessageType::Warning, message);
-        return false;
-    }
-
-    true
 }
 
 fn heading(text: &str) -> Label {
@@ -139,7 +129,11 @@ pub fn open() {
     lang_combo.append(Some("en"), "English");
     lang_combo.append(Some("ru"), "Русский");
 
-    let lang_id: &str = if cfg.language.is_empty() { "" } else { &cfg.language };
+    let lang_id: &str = if cfg.language.is_empty() {
+        ""
+    } else {
+        &cfg.language
+    };
 
     lang_combo.set_active_id(Some(lang_id));
     root.pack_start(&lang_combo, false, false, 0);
@@ -217,7 +211,7 @@ pub fn open() {
         let resp = dlg.run();
 
         dlg.close();
-        
+
         if let ResponseType::Other(idx) = resp
             && let Some(v) = vaults.get(idx as usize)
         {
@@ -249,50 +243,58 @@ pub fn open() {
         @weak folder_entry, @weak append_entry, @weak template_entry,
         @weak ts_check, @weak autostart_check, @weak hotkey_entry, @weak lang_combo
         => move |_| {
-            let folder = trimmed(&folder_entry);
-            let append_file = trimmed(&append_entry);
-            let filename_template = trimmed(&template_entry);
-
-            if !require_non_empty(&window, &folder, i18n::alert_empty_subfolder())
-                || !require_non_empty(&window, &append_file, i18n::alert_empty_append())
-                || !require_non_empty(&window, &filename_template, i18n::alert_empty_template())
-            {
-                return;
-            }
-
-            let hotkey = non_empty_trimmed(&hotkey_entry);
-            if let Some(ref h) = hotkey
-                && let Err(e) = crate::hotkey::parse_hotkey(h)
-            {
-                alert(&window, MessageType::Error, &format!("{}: {e}", i18n::alert_invalid_hotkey()));
-                return;
-            }
-
-            let language = lang_combo.active_id()
-                .map(|s| s.to_string())
-                .unwrap_or_default();
-
-            // Apply immediately so subsequent dialogs / notifications in this
-            // session use the new language without waiting for the file watcher.
-            i18n::apply(&language);
-
-            let new_cfg = Config {
-                vault_path: PathBuf::from(trimmed(&vault_entry)),
-                target: target_combo.active_id().as_deref()
+            let draft = SettingsDraft {
+                vault_path: trimmed(&vault_entry),
+                target: target_combo
+                    .active_id()
+                    .as_deref()
                     .and_then(SaveTarget::from_id)
                     .unwrap_or_default(),
-                folder,
-                append_file,
-                filename_template,
+                folder: trimmed(&folder_entry),
+                append_file: trimmed(&append_entry),
+                filename_template: trimmed(&template_entry),
                 prepend_timestamp_header: ts_check.is_active(),
-                hotkey,
+                hotkey_raw: trimmed(&hotkey_entry),
                 autostart: autostart_check.is_active(),
-                language,
+                language: lang_combo
+                    .active_id()
+                    .map(|s| s.to_string())
+                    .unwrap_or_default(),
             };
 
-            match config::save(&new_cfg) {
-                Ok(()) => window.close(),
-                Err(e) => alert(&window, MessageType::Error, &format!("{}:\n{e:#}", i18n::alert_save_failed())),
+            match settings::validate_and_build(draft) {
+                Ok(new_cfg) => {
+                    // Apply immediately so subsequent dialogs / notifications in this
+                    // session use the new language without waiting for the file watcher.
+                    i18n::apply(&new_cfg.language);
+
+                    match config::save(&new_cfg) {
+                        Ok(()) => window.close(),
+                        Err(e) => alert(
+                            &window,
+                            MessageType::Error,
+                            &format!("{}:\n{e:#}", i18n::alert_save_failed()),
+                        ),
+                    }
+                }
+                Err(e) => match e {
+                    SettingsValidationError::EmptySubfolder => {
+                        alert(&window, MessageType::Warning, i18n::alert_empty_subfolder());
+                    }
+                    SettingsValidationError::EmptyAppend => {
+                        alert(&window, MessageType::Warning, i18n::alert_empty_append());
+                    }
+                    SettingsValidationError::EmptyTemplate => {
+                        alert(&window, MessageType::Warning, i18n::alert_empty_template());
+                    }
+                    SettingsValidationError::InvalidHotkey(msg) => {
+                        alert(
+                            &window,
+                            MessageType::Error,
+                            &format!("{}: {msg}", i18n::alert_invalid_hotkey()),
+                        );
+                    }
+                },
             }
         }
     ));
@@ -311,9 +313,4 @@ fn labeled_entry(container: &GtkBox, label: &str, initial: &str) -> Entry {
 
 fn trimmed(entry: &Entry) -> String {
     entry.text().as_str().trim().to_string()
-}
-
-fn non_empty_trimmed(entry: &Entry) -> Option<String> {
-    let s = trimmed(entry);
-    if s.is_empty() { None } else { Some(s) }
 }

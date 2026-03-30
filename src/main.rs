@@ -1,22 +1,15 @@
-mod autostart;
-mod clipboard;
-mod config;
-mod hotkey;
-mod i18n;
-mod update;
-mod vault;
-
-#[cfg(target_os = "linux")]
-mod settings_gui;
-#[cfg(target_os = "macos")]
-mod settings_macos;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-mod tray;
-
-use std::path::PathBuf;
+//! CLI entry point; logic lives in the library crate (`lib.rs`).
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use scoria::app::tray;
+
+#[cfg(target_os = "macos")]
+use scoria::ui::macos;
+
+use scoria::perform_save;
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -36,13 +29,10 @@ enum Commands {
     SettingsGui,
 }
 
-pub fn perform_save() -> Result<PathBuf> {
-    let cfg = config::load_or_create()?;
-    let content = clipboard::read()?;
-    vault::save(&cfg, &content)
-}
-
 fn main() -> Result<()> {
+    #[cfg(target_os = "macos")]
+    macos::set_process_name();
+
     let cli = Cli::parse();
 
     match cli.command.unwrap_or(Commands::Run) {
@@ -54,11 +44,11 @@ fn main() -> Result<()> {
         }
         Commands::Save => {
             let path = perform_save()?;
-            
+
             println!("{}", path.display());
             Ok(())
         }
         #[cfg(target_os = "macos")]
-        Commands::SettingsGui => settings_macos::run_blocking(),
+        Commands::SettingsGui => macos::run_blocking(),
     }
 }

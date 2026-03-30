@@ -1,9 +1,6 @@
 //! Native macOS settings (AppKit). Runs as `scoria settings-gui` so it does not share the tray
 //! process's Tao event loop.
 
-use std::cell::OnceCell;
-use std::path::PathBuf;
-
 use anyhow::Context;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
@@ -16,16 +13,23 @@ use objc2_app_kit::{
     NSWindowStyleMask,
 };
 use objc2_foundation::{
-    MainThreadMarker, NSNotification, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize,
-    NSString, ns_string,
+    MainThreadMarker, NSEdgeInsets, NSNotification, NSObject, NSObjectProtocol, NSPoint,
+    NSProcessInfo, NSRect, NSSize, NSString, ns_string,
 };
+use std::cell::OnceCell;
 
-use crate::config::{self, Config, SaveTarget};
+use crate::engine::config::{self, SaveTarget};
+use crate::engine::settings::{self, SettingsDraft, SettingsValidationError};
 use crate::i18n;
 
 // ---------------------------------------------------------------------------
 // UI helpers
 // ---------------------------------------------------------------------------
+
+/// Sets the process title for Activity Monitor / `ps` / Force Quit (bare binaries often show argv oddly).
+pub fn set_process_name() {
+    NSProcessInfo::processInfo().setProcessName(&NSString::from_str("Scoria"));
+}
 
 fn vstack(mtm: MainThreadMarker) -> Retained<NSStackView> {
     let s = NSStackView::new(mtm);
@@ -87,16 +91,6 @@ fn show_alert(mtm: MainThreadMarker, title: &str, message: &str) {
     alert.runModal();
 }
 
-fn require_non_empty(mtm: MainThreadMarker, value: &str, message: &str) -> bool {
-    if value.is_empty() {
-        show_alert(mtm, i18n::alert_invalid(), message);
-
-        return false;
-    }
-
-    true
-}
-
 // ---------------------------------------------------------------------------
 // Delegate
 // ---------------------------------------------------------------------------
@@ -150,6 +144,13 @@ define_class!(
             }
 
             let root = vstack(mtm);
+
+            root.setEdgeInsets(NSEdgeInsets {
+                top: 12.0,
+                left: 12.0,
+                bottom: 12.0,
+                right: 12.0,
+            });
 
             // Vault row: label + editable field + Browse + Detect
             add_label(&root, i18n::settings_vault(), mtm);
@@ -283,13 +284,12 @@ define_class!(
 
             let view = window.contentView().expect("content view");
 
-            root.setTranslatesAutoresizingMaskIntoConstraints(false);
             root.setAutoresizingMask(
                 NSAutoresizingMaskOptions::ViewWidthSizable
                     | NSAutoresizingMaskOptions::ViewHeightSizable,
             );
-            root.setFrame(NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(520.0, 540.0)));
             view.addSubview(&root);
+            root.setFrame(view.bounds());
             window.setDelegate(Some(ProtocolObject::from_ref(self)));
             window.center();
             window.makeKeyAndOrderFront(None);
@@ -306,7 +306,8 @@ define_class!(
             let _ = self.ivars().ts_check.set(ts);
             let _ = self.ivars().autostart_check.set(autostart);
 
-            app.setActivationPolicy(NSApplicationActivationPolicy::Regular);
+            // Accessory: no Dock entry; window still works (same as tray Tao policy).
+            app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
             #[allow(deprecated)]
             app.activateIgnoringOtherApps(true);
         }
@@ -375,7 +376,7 @@ define_class!(
                 alert.addButtonWithTitle(&NSString::from_str(i18n::settings_cancel()));
 
                 let raw = alert.runModal() - NSAlertFirstButtonReturn;
-                
+
                 usize::try_from(raw).ok().filter(|&i| i < vaults.len())
             };
 
@@ -389,45 +390,10 @@ define_class!(
             let mtm = self.mtm();
             let iv = self.ivars();
 
-            let folder_raw = iv.folder.get().expect("folder").stringValue().to_string();
-            let folder = folder_raw.trim();
-            let append_raw = iv.append_file.get().expect("append").stringValue().to_string();
-            let append_file = append_raw.trim();
-            let template_raw = iv
-                .filename_template
-                .get()
-                .expect("template")
-                .stringValue()
-                .to_string();
-            let filename_template = template_raw.trim();
-
-            if !require_non_empty(mtm, folder, i18n::alert_empty_subfolder())
-                || !require_non_empty(mtm, append_file, i18n::alert_empty_append())
-                || !require_non_empty(mtm, filename_template, i18n::alert_empty_template())
-            {
-                return;
-            }
-
-            let hotkey_raw = iv.hotkey.get().expect("hotkey").stringValue().to_string();
-            let hotkey = match hotkey_raw.trim() {
-                "" => None,
-                h => match crate::hotkey::parse_hotkey(h) {
-                    Ok(_) => Some(h.to_string()),
-                    Err(e) => {
-                        show_alert(mtm, i18n::alert_invalid_hotkey(), &e.to_string());
-                        return;
-                    }
-                },
-            };
-
             let target = match iv.target_popup.get().expect("popup").indexOfSelectedItem() {
                 1 => SaveTarget::AppendToFile,
                 _ => SaveTarget::NewFileInFolder,
             };
-
-            let vault_path = PathBuf::from(
-                iv.vault.get().expect("vault").stringValue().to_string().trim(),
-            );
 
             let language = match iv.lang_popup.get().expect("lang").indexOfSelectedItem() {
                 1 => "en".to_string(),
@@ -435,27 +401,52 @@ define_class!(
                 _ => String::new(),
             };
 
-            let new_cfg = Config {
-                vault_path,
+            let draft = SettingsDraft {
+                vault_path: iv.vault.get().expect("vault").stringValue().to_string(),
                 target,
-                folder: folder.to_string(),
-                append_file: append_file.to_string(),
-                filename_template: filename_template.to_string(),
+                folder: iv.folder.get().expect("folder").stringValue().to_string(),
+                append_file: iv.append_file.get().expect("append").stringValue().to_string(),
+                filename_template: iv
+                    .filename_template
+                    .get()
+                    .expect("template")
+                    .stringValue()
+                    .to_string(),
                 prepend_timestamp_header: iv.ts_check.get().expect("ts").state()
                     == NSControlStateValueOn,
-                hotkey,
+                hotkey_raw: iv.hotkey.get().expect("hotkey").stringValue().to_string(),
                 autostart: iv.autostart_check.get().expect("autostart").state()
                     == NSControlStateValueOn,
                 language,
             };
 
-            match config::save(&new_cfg) {
-                Ok(()) => {
-                    if let Some(w) = iv.window.get() {
-                        w.performClose(None);
+            match settings::validate_and_build(draft) {
+                Ok(new_cfg) => {
+                    i18n::apply(&new_cfg.language);
+
+                    match config::save(&new_cfg) {
+                        Ok(()) => {
+                            if let Some(w) = iv.window.get() {
+                                w.performClose(None);
+                            }
+                        }
+                        Err(e) => show_alert(mtm, i18n::alert_save_failed(), &format!("{e:#}")),
                     }
                 }
-                Err(e) => show_alert(mtm, i18n::alert_save_failed(), &format!("{e:#}")),
+                Err(e) => match e {
+                    SettingsValidationError::EmptySubfolder => {
+                        show_alert(mtm, i18n::alert_invalid(), i18n::alert_empty_subfolder());
+                    }
+                    SettingsValidationError::EmptyAppend => {
+                        show_alert(mtm, i18n::alert_invalid(), i18n::alert_empty_append());
+                    }
+                    SettingsValidationError::EmptyTemplate => {
+                        show_alert(mtm, i18n::alert_invalid(), i18n::alert_empty_template());
+                    }
+                    SettingsValidationError::InvalidHotkey(msg) => {
+                        show_alert(mtm, i18n::alert_invalid_hotkey(), &msg);
+                    }
+                },
             }
         }
 
