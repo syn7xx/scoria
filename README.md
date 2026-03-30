@@ -85,6 +85,12 @@ On macOS you can also open the same settings window from a terminal (starts a sh
 scoria settings-gui
 ```
 
+On Linux (including GNOME without AppIndicator) you can open the GTK settings from a terminal:
+
+```bash
+scoria settings-gui
+```
+
 To edit the raw TOML instead, use **Open config file…** in the tray menu or open  
 `~/Library/Application Support/scoria/config.toml` in any editor (e.g. `open -e` for TextEdit).
 

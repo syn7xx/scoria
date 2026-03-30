@@ -1,6 +1,6 @@
 [package]
 name = "scoria"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "Save clipboard content (text & images) to an Obsidian vault — system tray + CLI (Linux & macOS)"
 license = "MIT OR Apache-2.0"
@@ -27,6 +27,7 @@ tray-icon = { version = "0.21", default-features = false }
 [target.'cfg(target_os = "linux")'.dependencies]
 glib = "0.18"
 gtk = "0.18"
+dbus = "0.9"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.2", default-features = false, features = ["std"] }

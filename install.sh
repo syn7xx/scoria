@@ -4,30 +4,83 @@ set -euo pipefail
 REPO="syn7xx/scoria"
 INSTALL_DIR="${HOME}/.local/bin"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
-case "$ARCH" in
-  x86_64)          ARCH="x86_64" ;;
-  arm64|aarch64)   ARCH="aarch64" ;;
-  *)               echo "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
+die() {
+  echo "Error: $*" >&2
+  exit 1
+}
 
-case "$OS" in
-  Linux)   PLATFORM="linux" ;;
-  Darwin)  PLATFORM="macos" ;;
-  *)       echo "Unsupported OS: $OS"; exit 1 ;;
-esac
+normalize_arch() {
+  case "$1" in
+    x86_64)        echo "x86_64" ;;
+    arm64|aarch64) echo "aarch64" ;;
+    *)             die "Unsupported architecture: $1" ;;
+  esac
+}
+
+normalize_platform() {
+  case "$1" in
+    Linux)   echo "linux" ;;
+    Darwin)  echo "macos" ;;
+    *)       die "Unsupported OS: $1" ;;
+  esac
+}
+
+fetch_latest_tag() {
+  local repo="$1"
+  local latest
+  latest="$(curl -sSfL "https://api.github.com/repos/${repo}/releases/latest" \
+    | grep '"tag_name"' | head -1 | cut -d'"' -f4)"
+  if [ -z "$latest" ]; then
+    die "Could not fetch latest version."
+  fi
+  echo "$latest"
+}
+
+install_linux_desktop() {
+  local scoria_bin="$1"
+  local script_dir="$2"
+
+  # Walker/Omarchy list applications from XDG desktop entries, not just binaries in $PATH.
+  local xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+  local xdg_icon_home="${XDG_ICON_HOME:-$HOME/.local/share/icons}"
+
+  local app_desktop_dir="${xdg_data_home}/applications"
+  local app_desktop="${app_desktop_dir}/scoria.desktop"
+  local icon_dir="${xdg_icon_home}/hicolor/scalable/apps"
+
+  mkdir -p "$app_desktop_dir" "$icon_dir"
+
+  # Optional: icon is nice-to-have; if missing, desktop entry still works.
+  if [ -f "${script_dir}/assets/scoria.svg" ]; then
+    cp -f "${script_dir}/assets/scoria.svg" "${icon_dir}/scoria.svg"
+  fi
+
+  cat > "$app_desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Scoria
+Comment=Save clipboard to Obsidian vault
+Exec=${scoria_bin} run
+Icon=scoria
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+EOF
+
+  echo "Also installed ${app_desktop} (Walker / Omarchy)."
+}
+
+ARCH="$(normalize_arch "$ARCH")"
+PLATFORM="$(normalize_platform "$OS")"
 
 ASSET="scoria-${PLATFORM}-${ARCH}.tar.gz"
 
-LATEST="$(curl -sL "https://api.github.com/repos/${REPO}/releases/latest" \
-  | grep '"tag_name"' | head -1 | cut -d'"' -f4)"
-
-if [ -z "$LATEST" ]; then
-  echo "Could not fetch latest version."
-  exit 1
-fi
+LATEST="$(fetch_latest_tag "$REPO")"
 
 URL="https://github.com/${REPO}/releases/download/${LATEST}/${ASSET}"
 
@@ -38,7 +91,7 @@ echo "  to:   ${INSTALL_DIR}/scoria"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-curl -sL "$URL" | tar xz -C "$TMP"
+curl -sSfL "$URL" | tar -xzf - -C "$TMP"
 mkdir -p "$INSTALL_DIR"
 install -m 755 "$TMP/scoria" "$INSTALL_DIR/scoria"
 
@@ -92,6 +145,8 @@ if [[ "$OS" == "Darwin" ]]; then
 </plist>
 EOF
   echo "Also installed ${APP} (Spotlight / Applications)."
+elif [[ "$OS" == "Linux" ]]; then
+  install_linux_desktop "$SCORIA_BIN" "$SCRIPT_DIR"
 fi
 
 echo "Done. Run 'scoria --version' to verify."

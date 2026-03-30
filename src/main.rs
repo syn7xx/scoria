@@ -9,6 +9,9 @@ use scoria::app::tray;
 #[cfg(target_os = "macos")]
 use scoria::ui::macos;
 
+#[cfg(target_os = "linux")]
+use scoria::ui::gtk;
+
 use scoria::perform_save;
 
 #[derive(Parser)]
@@ -24,8 +27,7 @@ enum Commands {
     Run,
     /// Save selection or clipboard to Obsidian vault.
     Save,
-    /// Open the graphical settings window (macOS AppKit helper process).
-    #[cfg(target_os = "macos")]
+    /// Open the graphical settings window.
     SettingsGui,
 }
 
@@ -48,7 +50,13 @@ fn main() -> Result<()> {
             println!("{}", path.display());
             Ok(())
         }
-        #[cfg(target_os = "macos")]
-        Commands::SettingsGui => macos::run_blocking(),
+        Commands::SettingsGui => {
+            #[cfg(target_os = "macos")]
+            macos::run_blocking();
+            #[cfg(target_os = "linux")]
+            gtk::open();
+
+            Ok(())
+        }
     }
 }

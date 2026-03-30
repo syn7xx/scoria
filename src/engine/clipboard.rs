@@ -1,5 +1,8 @@
 use anyhow::{Result, bail};
 
+#[cfg(any(target_os = "macos", test))]
+use crate::i18n;
+
 pub enum Content {
     Text(String),
     Image { data: Vec<u8>, ext: &'static str },
@@ -33,6 +36,27 @@ fn read_arboard() -> Option<Content> {
         return Some(Content::Text(text));
     }
     None
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn choose_clipboard_content(arboard: Option<Content>, pb_text: Option<String>) -> Result<Content> {
+    if let Some(c) = arboard {
+        match c {
+            // pbpaste handles text reliably; if we have text from pbpaste, prefer it.
+            // Images are only available via arboard, so keep arboard for images.
+            Content::Text(_) => {
+                if let Some(t) = pb_text {
+                    return Ok(Content::Text(t));
+                }
+                Ok(c)
+            }
+            Content::Image { .. } => Ok(c),
+        }
+    } else if let Some(t) = pb_text {
+        Ok(Content::Text(t))
+    } else {
+        bail!("{}", i18n::err_nothing_to_save_selection())
+    }
 }
 
 fn encode_rgba_png(width: usize, height: usize, rgba: &[u8]) -> Option<Vec<u8>> {
@@ -150,17 +174,80 @@ mod platform {
 mod platform {
     use super::*;
     use crate::i18n;
+    use std::time::Duration;
+
+    fn copy_selection_to_clipboard_via_cmd_c() -> bool {
+        // Best-effort: ask the focused app to copy the current selection into the system clipboard.
+        // Requires the user's Accessibility permissions for System Events.
+        let script = r#"tell application "System Events" to keystroke "c" using {command down}"#;
+        let status = std::process::Command::new("osascript")
+            .args(["-e", script])
+            .status();
+
+        // Let the clipboard update propagate.
+        std::thread::sleep(Duration::from_millis(200));
+
+        status.map(|s| s.success()).unwrap_or(false)
+    }
 
     pub fn read() -> Result<Content> {
-        if let Some(c) = read_arboard() {
-            return Ok(c);
+        // Always copy the current selection into the clipboard first. Reading the clipboard
+        // before this would return whatever was there last time (e.g. after a previous save),
+        // so the hotkey would ignore the new selection while non-empty stale data remained.
+        let cmd_c_ok = copy_selection_to_clipboard_via_cmd_c();
+
+        if !cmd_c_ok {
+            // Synthetic Cmd+C failed (e.g. Accessibility permission). User may have copied
+            // manually; read the clipboard as-is.
+            let arboard_initial = read_arboard();
+            let pb_text_initial = run_text("pbpaste", &[]);
+            return choose_clipboard_content(arboard_initial, pb_text_initial);
         }
 
-        if let Some(t) = run_text("pbpaste", &[]) {
-            return Ok(Content::Text(t));
+        // Wait for clipboard propagation after Cmd+C.
+        //
+        // Reliability trick for text:
+        // - `arboard` may still contain the *old* clipboard text when the global Cmd+C keystroke
+        //   is in-flight.
+        // - `pbpaste` usually updates faster for text.
+        // Therefore:
+        // - Prefer `pbpaste` text as soon as it becomes available.
+        // - Return `arboard` images immediately (pbpaste won't help for images).
+        // - Only if pbpaste never updates within the retry window, fall back to the last arboard
+        //   text value.
+        let mut last_arboard_text: Option<String> = None;
+
+        for attempt in 0..8 {
+            std::thread::sleep(Duration::from_millis(100));
+
+            let arboard = read_arboard();
+            let pb_text = run_text("pbpaste", &[]);
+
+            match arboard {
+                Some(Content::Image { data, ext }) => {
+                    // Keep as-is; pbpaste isn't suitable for images.
+                    return Ok(Content::Image { data, ext });
+                }
+                Some(Content::Text(t)) => {
+                    // Store and keep waiting for pbpaste to update.
+                    last_arboard_text = Some(t);
+                }
+                None => {}
+            }
+
+            if let Some(t) = pb_text {
+                return Ok(Content::Text(t));
+            }
+
+            if attempt == 7 {
+                if let Some(t) = last_arboard_text {
+                    return Ok(Content::Text(t));
+                }
+                bail!("{}", i18n::err_nothing_to_save_selection());
+            }
         }
 
-        bail!("{}", i18n::err_nothing_to_save())
+        bail!("{}", i18n::err_nothing_to_save_selection())
     }
 }
 
@@ -186,3 +273,7 @@ mod platform {
 pub fn read() -> Result<Content> {
     platform::read()
 }
+
+#[cfg(test)]
+#[path = "clipboard_tests.rs"]
+mod clipboard_tests;

@@ -6,7 +6,8 @@ set -euo pipefail
 
 PREFIX="${HOME}/.local"
 BINDIR="${PREFIX}/bin"
-DATADIR="${PREFIX}/share"
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_ICON_HOME="${XDG_ICON_HOME:-$HOME/.local/share/icons}"
 
 rm_path() {
 	if [[ -e "$1" ]] || [[ -L "$1" ]]; then
@@ -27,9 +28,9 @@ rm_path "${BINDIR}/scoria"
 
 case "$OS" in
 Linux)
-	rm_path "${DATADIR}/icons/hicolor/scalable/apps/scoria.svg"
-	rm_path "${DATADIR}/icons/hicolor/128x128/apps/scoria.png"
-	rm_path "${DATADIR}/applications/scoria.desktop"
+	rm_path "${XDG_ICON_HOME}/hicolor/scalable/apps/scoria.svg"
+	rm_path "${XDG_ICON_HOME}/hicolor/128x128/apps/scoria.png"
+	rm_path "${XDG_DATA_HOME}/applications/scoria.desktop"
 	rm_path "${HOME}/.config/autostart/scoria.desktop"
 	rm_path "${HOME}/.config/scoria"
 	;;
