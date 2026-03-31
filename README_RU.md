@@ -33,7 +33,7 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 #### Windows
 
 Для простой установки используйте `scoria-windows-x86_64.msi` со страницы [Releases](https://github.com/syn7xx/scoria/releases).
-Теперь это классический wizard-установщик: путь по умолчанию `Program Files\Scoria`, директорию можно изменить, а ярлык на рабочем столе выбрать в процессе установки.
+Мастер спрашивает папку установки и, нужен ли ярлык на **рабочем столе**; ярлык в **меню «Пуск»** создаётся всегда. Отдельного экрана с лицензией нет.
 
 Портативный вариант: скачайте `scoria-windows-x86_64.zip`, распакуйте `scoria.exe` и добавьте папку с ним в `PATH`.
 `install.sh` / `uninstall.sh` работают только на Unix-подобных системах.
@@ -44,11 +44,13 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
 ```
 
-Для мейнтейнеров: можно сгенерировать winget-манифесты из SHA256 релиза:
+Для мейнтейнеров: можно сгенерировать winget-манифесты (установщик — **портативный ZIP**) по SHA256 **архива** `scoria-windows-x86_64.zip`:
 
 ```powershell
-powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.1 -Sha256 "<sha256>"
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.2 -Sha256 "<sha256 scoria-windows-x86_64.zip>"
 ```
+
+Версию укажите как в релизе (см. `version` в `Cargo.toml`). Скрипт снимает ведущий `v` у `-Version`, если он есть.
 
 ### Через cargo
 
@@ -96,10 +98,10 @@ curl -sL https://github.com/syn7xx/scoria/raw/main/uninstall.sh | bash
 irm https://github.com/syn7xx/scoria/raw/main/uninstall.ps1 | iex
 ```
 
-На Windows (MSI-установка): удалите через **Apps & Features** или командой:
+На Windows (MSI-установка): удалите через **Параметры → Приложения** (предпочтительно) или `msiexec /x` с **полным путём** к установленному MSI, например:
 
 ```powershell
-msiexec /x scoria-windows-x86_64.msi
+msiexec /x "$env:USERPROFILE\Downloads\scoria-windows-x86_64.msi"
 ```
 
 Если ставили через `make install`, можно выполнить `make uninstall` (только бинарник, иконки и ярлык; полное удаление с конфигом и автозапуском — скриптом выше).
@@ -123,7 +125,7 @@ scoria settings-gui
 scoria settings-gui
 ```
 
-На Windows команда `scoria settings-gui` открывает нативное окно настроек.
+На Windows команда `scoria settings-gui` открывает нативное окно настроек. Запуск трея из меню «Пуск» или автозагрузки **не** открывает окно консоли.
 
 Чтобы править сырой TOML, используйте пункт **Open config file…** в меню трея.
 

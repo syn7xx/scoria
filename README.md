@@ -33,7 +33,7 @@ Or download manually from the [Releases](https://github.com/syn7xx/scoria/releas
 #### Windows
 
 Use the `scoria-windows-x86_64.msi` asset from [Releases](https://github.com/syn7xx/scoria/releases) for the easiest install.
-The installer now runs as a standard wizard: default install path is `Program Files\Scoria`, you can change the directory, and choose whether to create a desktop shortcut.
+The wizard asks for an installation folder and whether to add a **desktop** shortcut; a **Start menu** shortcut is always installed. There is no separate license step.
 
 Portable option: use `scoria-windows-x86_64.zip`, extract `scoria.exe`, and add its folder to `PATH`.
 `install.sh` / `uninstall.sh` are Unix-only.
@@ -44,11 +44,13 @@ Or install portable ZIP with one PowerShell command:
 irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
 ```
 
-For maintainers: winget manifests can be generated from a release SHA256:
+For maintainers: winget manifests (portable **ZIP** installer) can be generated from the ZIP’s SHA256:
 
 ```powershell
-powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.1 -Sha256 "<sha256>"
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.2 -Sha256 "<sha256 of scoria-windows-x86_64.zip>"
 ```
+
+Use the version you are releasing (see `version` in `Cargo.toml`). The script strips a leading `v` from `-Version` if present.
 
 ### With cargo
 
@@ -96,10 +98,10 @@ On Windows (portable ZIP install):
 irm https://github.com/syn7xx/scoria/raw/main/uninstall.ps1 | iex
 ```
 
-On Windows (MSI install): uninstall from **Apps & Features** or run:
+On Windows (MSI install): uninstall from **Apps & Features** (recommended), or run `msiexec /x` with the **full path** to the MSI you installed (or the cached copy), e.g.:
 
 ```powershell
-msiexec /x scoria-windows-x86_64.msi
+msiexec /x "$env:USERPROFILE\Downloads\scoria-windows-x86_64.msi"
 ```
 
 If you installed with `make install`, you can also run `make uninstall` (binary + icons + launcher only; use the script above to drop config and autostart).
@@ -123,7 +125,7 @@ On Linux (including GNOME without AppIndicator) you can open the GTK settings fr
 scoria settings-gui
 ```
 
-On Windows, `scoria settings-gui` opens the native settings window.
+On Windows, `scoria settings-gui` opens the native settings window. Starting the tray from the Start menu or autostart does **not** open a console window.
 
 To edit the raw TOML instead, use **Open config file…** in the tray menu.
 

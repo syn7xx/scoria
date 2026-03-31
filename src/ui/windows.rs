@@ -71,7 +71,14 @@ fn show_validation_error(window: &nwg::Window, error: SettingsValidationError) {
 
 pub fn open() -> Result<()> {
     nwg::init().context("initialize native-windows-gui")?;
-    nwg::Font::set_global_family("Segoe UI").ok();
+
+    let mut ui_font = nwg::Font::default();
+    nwg::Font::builder()
+        .family("Segoe UI")
+        .size(14)
+        .build(&mut ui_font)
+        .context("create settings UI font")?;
+    nwg::Font::set_global_default(Some(ui_font));
 
     let cfg = config::load_or_create().context("load config")?;
     i18n::apply(&cfg.language);

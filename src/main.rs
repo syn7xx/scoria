@@ -1,4 +1,8 @@
 //! CLI entry point; logic lives in the library crate (`lib.rs`).
+//!
+//! Windows: `windows_subsystem = "windows"` avoids a console for the default tray run; for
+//! `scoria save`, `attach_to_parent_console` attaches to the parent shell so `println!` works.
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -33,15 +37,36 @@ enum Commands {
     SettingsGui,
 }
 
+/// Attach to the parent console so stdout/tracing work for `scoria save` with `windows_subsystem`.
+#[cfg(windows)]
+fn attach_to_parent_console() {
+    type BOOL = i32;
+    type DWORD = u32;
+    #[link(name = "kernel32", kind = "system")]
+    extern "system" {
+        fn AttachConsole(dw_process_id: DWORD) -> BOOL;
+    }
+    const ATTACH_PARENT_PROCESS: DWORD = 0xFFFF_FFFF;
+    unsafe {
+        let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+}
+
 fn main() -> Result<()> {
+    let cli = Cli::parse();
+    let command = cli.command.unwrap_or(Commands::Run);
+
+    #[cfg(windows)]
+    if matches!(command, Commands::Save) {
+        attach_to_parent_console();
+    }
+
     scoria::init_logging();
 
     #[cfg(target_os = "macos")]
     macos::set_process_name();
 
-    let cli = Cli::parse();
-
-    match cli.command.unwrap_or(Commands::Run) {
+    match command {
         Commands::Run => {
             #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
             return tray::run();

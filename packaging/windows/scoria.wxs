@@ -11,21 +11,19 @@
     <Icon Id="ScoriaProductIcon" SourceFile="$(var.SourceDir)\scoria.exe" />
     <Property Id="ARPPRODUCTICON" Value="ScoriaProductIcon" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-    <UIRef Id="WixUI_Mondo" />
+    <Property Id="CREATE_DESKTOP_SHORTCUT" Value="1" />
+
+    <UIRef Id="ScoriaInstallUI" />
 
     <MajorUpgrade
       DowngradeErrorMessage="A newer version of Scoria is already installed." />
-    <!-- Embed the cabinet in the MSI so a single file can be distributed (no separate cab1.cab). -->
     <MediaTemplate EmbedCab="yes" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="Scoria" />
       </Directory>
-      <Directory Id="CommonProgramsFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="Scoria" />
-      </Directory>
-      <Directory Id="CommonDesktopFolder" />
+      <!-- Shortcuts: never nest CommonPrograms/CommonDesktop under TARGETDIR (MSI resolves to ROOTDRIVE). -->
     </Directory>
 
     <DirectoryRef Id="INSTALLFOLDER">
@@ -41,17 +39,18 @@
       </Component>
     </DirectoryRef>
 
-    <DirectoryRef Id="ApplicationProgramsFolder">
+    <DirectoryRef Id="CommonProgramsFolder">
       <Component Id="StartMenuShortcutComponent" Guid="BA094A84-14DC-4A20-8785-F3374B5B8F62" Win64="yes">
         <Shortcut
           Id="StartMenuShortcut"
           Name="Scoria"
           Description="Save clipboard to Obsidian vault"
-          Target="[INSTALLFOLDER]scoria.exe"
+          Target="[#ScoriaExeFile]"
           WorkingDirectory="INSTALLFOLDER"
           Icon="ScoriaProductIcon"
-          Advertise="no" />
-        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+          Advertise="no">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="syn7xx.Scoria" />
+        </Shortcut>
         <RegistryValue
           Root="HKLM"
           Key="Software\syn7xx\Scoria"
@@ -64,11 +63,12 @@
 
     <DirectoryRef Id="CommonDesktopFolder">
       <Component Id="DesktopShortcutComponent" Guid="E0AD5B29-DA42-4D80-BF7A-A4FF0B7075B0" Win64="yes">
+        <Condition><![CDATA[CREATE_DESKTOP_SHORTCUT="1"]]></Condition>
         <Shortcut
           Id="DesktopShortcut"
           Name="Scoria"
           Description="Save clipboard to Obsidian vault"
-          Target="[INSTALLFOLDER]scoria.exe"
+          Target="[#ScoriaExeFile]"
           WorkingDirectory="INSTALLFOLDER"
           Icon="ScoriaProductIcon"
           Advertise="no" />
@@ -88,4 +88,57 @@
       <ComponentRef Id="DesktopShortcutComponent" />
     </Feature>
   </Product>
+
+  <Fragment>
+    <UI Id="ScoriaInstallUI">
+      <UIRef Id="WixUI_InstallDir" />
+
+      <Dialog Id="ScoriaShortcutDlg" Width="370" Height="270" Title="[ProductName] Setup" NoMinimize="yes">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control
+          Id="Description"
+          Type="Text"
+          X="25"
+          Y="57"
+          Width="320"
+          Height="40"
+          Transparent="yes"
+          NoPrefix="yes"
+          Text="A Start menu shortcut is always created. Choose whether to also place a shortcut on the desktop." />
+        <Control
+          Id="DesktopShortcutCheck"
+          Type="CheckBox"
+          X="25"
+          Y="110"
+          Width="320"
+          Height="18"
+          Property="CREATE_DESKTOP_SHORTCUT"
+          CheckBoxValue="1"
+          Text="Create a desktop shortcut"
+          TabSkip="no" />
+        <Control
+          Id="BottomLine"
+          Type="Line"
+          X="0"
+          Y="234"
+          Width="370"
+          Height="0" />
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" />
+        </Control>
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="Back">
+          <Publish Event="NewDialog" Value="InstallDirDlg" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="ScoriaShortcutDlg" Order="2">1</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ScoriaShortcutDlg" Order="2">1</Publish>
+    </UI>
+  </Fragment>
 </Wix>
