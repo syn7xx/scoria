@@ -8,19 +8,23 @@ if (-not (Test-Path -LiteralPath $Bin)) {
     throw "Binary not found: $Bin"
 }
 
+$BinExe = (Resolve-Path -LiteralPath $Bin).Path
+
 Write-Host "[windows] smoke: version"
-& $Bin --version *> $null
+& $BinExe --version *> $null
 
 Write-Host "[windows] smoke: help"
-& $Bin --help *> $null
+& $BinExe --help *> $null
 
 Write-Host "[windows] smoke: command help"
-& $Bin save --help *> $null
-& $Bin settings-gui --help *> $null
+& $BinExe save --help *> $null
+& $BinExe settings-gui --help *> $null
 
 Write-Host "[windows] smoke: deterministic save path (temp vault + clipboard)"
 $vaultDir = Join-Path $env:TEMP ("scoria-smoke-vault-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $vaultDir -Force | Out-Null
+# TOML: use forward slashes so we do not depend on escaping backslashes
+$vaultToml = ($vaultDir -replace '\\', '/')
 
 $cfgDir = Join-Path $env:APPDATA "scoria"
 $cfgPath = Join-Path $cfgDir "config.toml"
@@ -32,8 +36,9 @@ if ($hadConfig) {
 
 try {
     New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
+    # TOML (avoid nested quotes in @" heredoc — keep paths as single-quoted literals)
     $cfg = @"
-vault_path = '$vaultDir'
+vault_path = '$vaultToml'
 target = 'append_to_file'
 folder = 'scoria'
 append_file = 'Scoria.md'
@@ -43,14 +48,15 @@ autostart = false
 auto_update = false
 language = 'en'
 "@
-    Set-Content -LiteralPath $cfgPath -Value $cfg -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($cfgPath, $cfg, $utf8NoBom)
 
     Set-Clipboard -Value "scoria smoke clipboard text"
 
     $tempOut = Join-Path $env:TEMP "scoria-smoke-save-out.txt"
     $tempErr = Join-Path $env:TEMP "scoria-smoke-save-err.txt"
     Remove-Item $tempOut, $tempErr -ErrorAction SilentlyContinue
-    $p = Start-Process -FilePath $Bin -ArgumentList @("save") -Wait -PassThru -NoNewWindow `
+    $p = Start-Process -FilePath $BinExe -ArgumentList @("save") -Wait -PassThru -NoNewWindow `
         -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
     $exitCode = $p.ExitCode
     $text = ""

@@ -1,0 +1,4 @@
+# Static MSVC runtime: avoids missing / mismatched VCRUNTIME on clean machines and some CI runners
+# (loader failures like STATUS_ENTRYPOINT_NOT_FOUND when importing CRT symbols).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
