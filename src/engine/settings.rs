@@ -16,6 +16,7 @@ pub struct SettingsDraft {
     pub prepend_timestamp_header: bool,
     pub hotkey_raw: String,
     pub autostart: bool,
+    pub auto_update: bool,
     pub language: String,
 }
 
@@ -62,6 +63,11 @@ pub fn validate_and_build(draft: SettingsDraft) -> Result<Config, SettingsValida
         prepend_timestamp_header: draft.prepend_timestamp_header,
         hotkey,
         autostart: draft.autostart,
+        auto_update: draft.auto_update,
         language: draft.language,
     })
 }
+
+#[cfg(test)]
+#[path = "settings_tests.rs"]
+mod settings_tests;

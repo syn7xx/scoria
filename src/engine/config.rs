@@ -41,6 +41,8 @@ pub struct Config {
     pub prepend_timestamp_header: bool,
     pub hotkey: Option<String>,
     pub autostart: bool,
+    /// Automatically check for updates on startup (disabled by default for safety).
+    pub auto_update: bool,
     /// Interface language: `""` = auto-detect, `"en"` = English, `"ru"` = Russian.
     pub language: String,
 }
@@ -56,6 +58,7 @@ impl Default for Config {
             prepend_timestamp_header: true,
             hotkey: None,
             autostart: false,
+            auto_update: false,
             language: String::new(),
         }
     }
@@ -109,7 +112,7 @@ pub fn save(config: &Config) -> Result<()> {
     let s = toml::to_string_pretty(config).context("serialize config")?;
     std::fs::write(&path, s).with_context(|| format!("write {}", path.display()))?;
 
-    crate::engine::autostart::apply(config.autostart);
+    tracing::debug!(path = %path.display(), "config saved");
     Ok(())
 }
 
@@ -194,3 +197,7 @@ pub fn best_vault() -> Option<PathBuf> {
         .or(vaults.first())
         .map(|v| v.path.clone())
 }
+
+#[cfg(test)]
+#[path = "config_tests.rs"]
+mod config_tests;

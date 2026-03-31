@@ -32,6 +32,8 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
+    scoria::init_logging();
+
     #[cfg(target_os = "macos")]
     macos::set_process_name();
 

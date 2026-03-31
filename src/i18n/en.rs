@@ -32,6 +32,7 @@ pub(super) static EN: T = T {
     settings_template: "New file name template (strftime)",
     settings_timestamp: "Prepend timestamp & Markdown header",
     settings_autostart: "Start Scoria on login",
+    settings_auto_update: "Automatically check for updates on startup",
     settings_hotkey_x11: "Global hotkey (optional, X11 only)",
     settings_hotkey: "Global hotkey (optional)",
     settings_hotkey_wayland: "On Wayland bind `scoria save` in Hyprland. Restart after changing the hotkey.",

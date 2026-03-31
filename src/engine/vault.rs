@@ -111,3 +111,7 @@ fn save_image(config: &Config, data: &[u8], ext: &str) -> Result<PathBuf> {
 
     Ok(md_path)
 }
+
+#[cfg(test)]
+#[path = "vault_tests.rs"]
+mod vault_tests;

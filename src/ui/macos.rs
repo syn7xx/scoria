@@ -107,6 +107,7 @@ struct SettingsIvars {
     lang_popup: OnceCell<Retained<NSPopUpButton>>,
     ts_check: OnceCell<Retained<NSButton>>,
     autostart_check: OnceCell<Retained<NSButton>>,
+    auto_update_check: OnceCell<Retained<NSButton>>,
 }
 
 define_class!(
@@ -213,6 +214,11 @@ define_class!(
 
             root.addArrangedSubview(&*autostart);
 
+            // Auto-update checkbox
+            let auto_update = add_checkbox(i18n::settings_auto_update(), cfg.auto_update, mtm);
+
+            root.addArrangedSubview(&*auto_update);
+
             // Language
             add_label(&root, i18n::settings_lang(), mtm);
 
@@ -305,6 +311,7 @@ define_class!(
             let _ = self.ivars().lang_popup.set(lang_popup);
             let _ = self.ivars().ts_check.set(ts);
             let _ = self.ivars().autostart_check.set(autostart);
+            let _ = self.ivars().auto_update_check.set(auto_update);
 
             // Accessory: no Dock entry; window still works (same as tray Tao policy).
             app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
@@ -416,6 +423,8 @@ define_class!(
                     == NSControlStateValueOn,
                 hotkey_raw: iv.hotkey.get().expect("hotkey").stringValue().to_string(),
                 autostart: iv.autostart_check.get().expect("autostart").state()
+                    == NSControlStateValueOn,
+                auto_update: iv.auto_update_check.get().expect("auto_update").state()
                     == NSControlStateValueOn,
                 language,
             };

@@ -14,6 +14,7 @@ pub enum CheckResult {
 }
 
 pub fn check() -> CheckResult {
+    tracing::debug!("checking for updates");
     match fetch_latest_tag() {
         Some(tag) if version_newer(strip_v(&tag), CURRENT_VERSION) => {
             let _ = LATEST_TAG.set(tag.clone());
@@ -39,20 +40,26 @@ pub fn apply(tag: &str) -> Result<()> {
         asset_name()
     );
 
-    eprintln!("scoria: downloading {url}...");
+    tracing::info!(url = %url, "downloading update");
 
     let tmp = std::env::temp_dir().join("scoria-update");
     let _ = std::fs::create_dir_all(&tmp);
     let tarball = tmp.join("scoria.tar.gz");
 
-    let dl = std::process::Command::new("curl")
-        .args(["-sL", "-o"])
-        .arg(&tarball)
-        .arg(&url)
-        .status()
-        .context("curl")?;
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .context("create HTTP client")?;
 
-    ensure!(dl.success(), "download failed");
+    let response = client
+        .get(&url)
+        .send()
+        .context("download failed")?;
+
+    ensure!(response.status().is_success(), "HTTP error: {}", response.status());
+
+    let bytes = response.bytes().context("read response body")?;
+    std::fs::write(&tarball, &bytes).context("write tarball")?;
 
     let extract = std::process::Command::new("tar")
         .args(["xzf"])
@@ -68,28 +75,33 @@ pub fn apply(tag: &str) -> Result<()> {
 
     let _ = std::fs::remove_dir_all(&tmp);
 
+    tracing::info!(tag = %tag, "update applied successfully");
     Ok(())
 }
 
 fn fetch_latest_tag() -> Option<String> {
-    let out = std::process::Command::new("curl")
-        .args([
-            "-sL",
-            "-H",
-            "Accept: application/vnd.github+json",
-            RELEASES_API,
-        ])
-        .output()
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
         .ok()?;
 
-    if !out.status.success() {
+    let response = client
+        .get(RELEASES_API)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .ok()?;
+
+    if !response.status().is_success() {
         return None;
     }
 
-    let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let json: serde_json::Value = match response.json() {
+        Ok(v) => v,
+        Err(_) => return None,
+    };
 
     json.get("tag_name")
-        .and_then(|v| v.as_str())
+        .and_then(|v: &serde_json::Value| v.as_str())
         .map(String::from)
 }
 
@@ -120,3 +132,7 @@ fn asset_name() -> String {
 
     format!("scoria-{os}-{arch}.tar.gz")
 }
+
+#[cfg(test)]
+#[path = "update_tests.rs"]
+mod update_tests;

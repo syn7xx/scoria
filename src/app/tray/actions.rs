@@ -14,12 +14,12 @@ pub(crate) fn do_save() {
     match crate::perform_save() {
         Ok(p) => {
             let body = i18n::notif_saved_body(&p.display().to_string());
-            eprintln!("scoria: {body}");
+            tracing::info!(path = %p.display(), "save completed");
             notify(i18n::notif_saved_title(), &body);
         }
         Err(e) => {
             let msg = format!("{e:#}");
-            eprintln!("scoria: save failed: {msg}");
+            tracing::error!(error = %msg, "save failed");
             notify(i18n::notif_save_failed(), &msg);
         }
     }
@@ -50,7 +50,7 @@ pub(crate) fn check_for_updates_bg() {
         if let update::CheckResult::UpdateAvailable(tag) = update::check() {
             let msg = format!("v{} → {tag}", update::current_version());
 
-            eprintln!("scoria: update available: {msg}");
+            tracing::info!(tag = %tag, "update available");
             notify(
                 i18n::notif_update_available(),
                 &i18n::notif_update_available_body(&msg),
@@ -84,13 +84,13 @@ pub(crate) fn do_update() {
         notify(i18n::notif_updating(), &i18n::notif_downloading(&tag));
         match update::apply(&tag) {
             Ok(()) => {
-                eprintln!("scoria: updated to {tag}");
+                tracing::info!(tag = %tag, "update applied");
                 notify(i18n::notif_updated(), &i18n::notif_updated_body(&tag));
             }
             Err(e) => {
                 let msg = format!("{e:#}");
 
-                eprintln!("scoria: update failed: {msg}");
+                tracing::error!(error = %msg, "update failed");
                 notify(i18n::notif_update_failed(), &msg);
             }
         }

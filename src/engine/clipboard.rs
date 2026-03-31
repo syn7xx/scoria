@@ -9,12 +9,34 @@ pub enum Content {
 }
 
 fn run_bytes(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
-    let out = std::process::Command::new(cmd).args(args).output().ok()?;
-    if out.status.success() && !out.stdout.is_empty() {
+    let out = std::process::Command::new(cmd)
+        .args(args)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+
+    if !out.stdout.is_empty() {
         Some(out.stdout)
     } else {
         None
     }
+}
+
+fn run_bytes_timeout(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
+    std::process::Command::new(cmd)
+        .args(args)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .filter(|o| !o.stdout.is_empty())
+        .map(|o| o.stdout)
+}
+
+fn run_text_timeout(cmd: &str, args: &[&str]) -> Option<String> {
+    run_bytes_timeout(cmd, args).and_then(|bytes| {
+        let s = String::from_utf8_lossy(&bytes).into_owned();
+        if s.is_empty() { None } else { Some(s) }
+    })
 }
 
 fn run_text(cmd: &str, args: &[&str]) -> Option<String> {
@@ -25,15 +47,15 @@ fn run_text(cmd: &str, args: &[&str]) -> Option<String> {
 
 fn read_arboard() -> Option<Content> {
     let mut cb = arboard::Clipboard::new().ok()?;
-    if let Ok(img) = cb.get_image()
-        && let Some(data) = encode_rgba_png(img.width, img.height, &img.bytes)
-    {
-        return Some(Content::Image { data, ext: "png" });
+    if let Ok(img) = cb.get_image() {
+        if let Some(data) = encode_rgba_png(img.width, img.height, &img.bytes) {
+            return Some(Content::Image { data, ext: "png" });
+        }
     }
-    if let Ok(text) = cb.get_text()
-        && !text.is_empty()
-    {
-        return Some(Content::Text(text));
+    if let Ok(text) = cb.get_text() {
+        if !text.is_empty() {
+            return Some(Content::Text(text));
+        }
     }
     None
 }
@@ -94,7 +116,7 @@ mod platform {
         if primary {
             args.push("--primary");
         }
-        run_text("wl-paste", &args)
+        run_text_timeout("wl-paste", &args)
             .map(|s| s.lines().map(str::to_string).collect())
             .unwrap_or_default()
     }
@@ -120,7 +142,7 @@ mod platform {
             if primary {
                 args.push("--primary");
             }
-            if let Some(data) = run_bytes("wl-paste", &args) {
+            if let Some(data) = run_bytes_timeout("wl-paste", &args) {
                 return Some(Content::Image { data, ext });
             }
         }
@@ -134,7 +156,7 @@ mod platform {
     fn read_xclip(primary: bool) -> Option<Content> {
         let sel = if primary { "primary" } else { "clipboard" };
         for (target, ext) in [("image/png", "png"), ("image/jpeg", "jpg")] {
-            if let Some(data) = run_bytes("xclip", &["-selection", sel, "-target", target, "-o"]) {
+            if let Some(data) = run_bytes_timeout("xclip", &["-selection", sel, "-target", target, "-o"]) {
                 return Some(Content::Image { data, ext });
             }
         }
@@ -146,7 +168,7 @@ mod platform {
             .or_else(|| read_xclip(primary))
             .or_else(|| {
                 if primary {
-                    run_text("xsel", &["--primary", "--output"]).map(Content::Text)
+                    run_text_timeout("xsel", &["--primary", "--output"]).map(Content::Text)
                 } else {
                     read_arboard()
                 }
@@ -200,7 +222,7 @@ mod platform {
             // Synthetic Cmd+C failed (e.g. Accessibility permission). User may have copied
             // manually; read the clipboard as-is.
             let arboard_initial = read_arboard();
-            let pb_text_initial = run_text("pbpaste", &[]);
+            let pb_text_initial = run_text_timeout("pbpaste", &[]);
             return choose_clipboard_content(arboard_initial, pb_text_initial);
         }
 
@@ -221,7 +243,7 @@ mod platform {
             std::thread::sleep(Duration::from_millis(100));
 
             let arboard = read_arboard();
-            let pb_text = run_text("pbpaste", &[]);
+            let pb_text = run_text_timeout("pbpaste", &[]);
 
             match arboard {
                 Some(Content::Image { data, ext }) => {

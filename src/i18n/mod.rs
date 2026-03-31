@@ -61,10 +61,10 @@ fn parse(s: &str) -> Lang {
 
 fn detect() -> Lang {
     for var in ["LANG", "LANGUAGE", "LC_ALL", "LC_MESSAGES"] {
-        if let Ok(v) = std::env::var(var)
-            && !v.is_empty()
-        {
-            return parse(&v);
+        if let Ok(v) = std::env::var(var) {
+            if !v.is_empty() {
+                return parse(&v);
+            }
         }
     }
     Lang::En
@@ -121,6 +121,7 @@ pub struct T {
     pub settings_template: &'static str,
     pub settings_timestamp: &'static str,
     pub settings_autostart: &'static str,
+    pub settings_auto_update: &'static str,
     pub settings_hotkey_x11: &'static str,
     pub settings_hotkey: &'static str,
     pub settings_hotkey_wayland: &'static str,
@@ -201,6 +202,7 @@ tr_fns!(
     settings_template,
     settings_timestamp,
     settings_autostart,
+    settings_auto_update,
     settings_hotkey_x11,
     settings_hotkey,
     settings_hotkey_wayland,
@@ -260,3 +262,7 @@ pub fn err_vault_not_found(path: &str) -> String {
 pub fn err_vault_not_dir(path: &str) -> String {
     tr().err_vault_not_dir.replace("{path}", path)
 }
+
+#[cfg(test)]
+#[path = "i18n_tests.rs"]
+mod i18n_tests;

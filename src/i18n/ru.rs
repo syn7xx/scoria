@@ -32,6 +32,7 @@ pub(super) static RU: T = T {
     settings_template: "Шаблон имени файла (strftime)",
     settings_timestamp: "Добавлять метку времени и заголовок Markdown",
     settings_autostart: "Запускать Scoria при входе в систему",
+    settings_auto_update: "Автоматически проверять обновления при запуске",
     settings_hotkey_x11: "Глобальная горячая клавиша (необязательно, только X11)",
     settings_hotkey: "Глобальная горячая клавиша (необязательно)",
     settings_hotkey_wayland: "На Wayland привяжите `scoria save` в Hyprland. Перезапустите после изменения.",

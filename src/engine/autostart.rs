@@ -116,3 +116,7 @@ fn enable(_exe: &Path) {}
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
 fn disable() {}
+
+#[cfg(test)]
+#[path = "autostart_tests.rs"]
+mod autostart_tests;

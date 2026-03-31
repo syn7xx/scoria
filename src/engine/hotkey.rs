@@ -90,3 +90,7 @@ fn friendly_code(s: &str) -> anyhow::Result<Code> {
         })
         .map_err(|_| anyhow::anyhow!("unknown key: {s} (try: a-z, 0-9, Space, F1-F12, etc.)"))
 }
+
+#[cfg(test)]
+#[path = "hotkey_tests.rs"]
+mod hotkey_tests;

@@ -6,14 +6,14 @@ pub(crate) fn try_register_hotkey(
     cfg: &config::Config,
 ) -> (Option<u32>, Option<GlobalHotKeyManager>) {
     let Some(ref spec) = cfg.hotkey else {
-        eprintln!("scoria: no hotkey configured; use tray menu or `scoria save`.");
+        tracing::debug!("no hotkey configured");
         return (None, None);
     };
 
     let hk = match hotkey::parse_hotkey(spec) {
         Ok(hk) => hk,
         Err(e) => {
-            eprintln!("scoria: invalid hotkey {spec:?}: {e}");
+            tracing::warn!(hotkey = %spec, error = %e, "invalid hotkey");
             return (None, None);
         }
     };
@@ -21,20 +21,18 @@ pub(crate) fn try_register_hotkey(
     let mgr = match GlobalHotKeyManager::new() {
         Ok(mgr) => mgr,
         Err(e) => {
-            eprintln!(
-                "scoria: global hotkeys unavailable ({e}). Bind `scoria save` in your DE instead."
-            );
+            tracing::warn!(error = %e, "global hotkeys unavailable");
             return (None, None);
         }
     };
 
     match mgr.register(hk) {
         Ok(()) => {
-            eprintln!("scoria: registered hotkey {spec}");
+            tracing::info!(hotkey = %spec, "hotkey registered");
             (Some(hk.id()), Some(mgr))
         }
         Err(e) => {
-            eprintln!("scoria: could not register hotkey {spec}: {e}");
+            tracing::warn!(hotkey = %spec, error = %e, "could not register hotkey");
             (None, None)
         }
     }

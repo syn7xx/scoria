@@ -71,10 +71,10 @@ pub fn open() {
     vault_entry.set_hexpand(true);
     vault_entry.set_text(&cfg.vault_path.to_string_lossy());
 
-    if cfg.vault_path.as_os_str().is_empty()
-        && let Some(p) = config::best_vault()
-    {
-        vault_entry.set_text(&p.to_string_lossy());
+    if cfg.vault_path.as_os_str().is_empty() {
+        if let Some(p) = config::best_vault() {
+            vault_entry.set_text(&p.to_string_lossy());
+        }
     }
 
     let detect_btn = Button::with_label(i18n::settings_detect());
@@ -119,6 +119,12 @@ pub fn open() {
 
     autostart_check.set_active(cfg.autostart);
     root.pack_start(&autostart_check, false, false, 0);
+
+    // --- Auto-update checkbox ---
+    let auto_update_check = CheckButton::with_label(i18n::settings_auto_update());
+
+    auto_update_check.set_active(cfg.auto_update);
+    root.pack_start(&auto_update_check, false, false, 0);
 
     // --- Language ---
     root.pack_start(&heading(i18n::settings_lang()), false, false, 0);
@@ -212,10 +218,10 @@ pub fn open() {
 
         dlg.close();
 
-        if let ResponseType::Other(idx) = resp
-            && let Some(v) = vaults.get(idx as usize)
-        {
-            vault_entry.set_text(&v.path.to_string_lossy());
+        if let ResponseType::Other(idx) = resp {
+            if let Some(v) = vaults.get(idx as usize) {
+                vault_entry.set_text(&v.path.to_string_lossy());
+            }
         }
     }));
 
@@ -226,11 +232,12 @@ pub fn open() {
             FileChooserAction::SelectFolder,
             &[("_Cancel", ResponseType::Cancel), ("_Select", ResponseType::Accept)],
         );
-        if dlg.run() == ResponseType::Accept
-            && let Some(f) = dlg.file()
-            && let Some(p) = f.path()
-        {
-            vault_entry.set_text(&p.to_string_lossy());
+        if dlg.run() == ResponseType::Accept {
+            if let Some(f) = dlg.file() {
+                if let Some(p) = f.path() {
+                    vault_entry.set_text(&p.to_string_lossy());
+                }
+            }
         }
         dlg.close();
     }));
@@ -241,7 +248,8 @@ pub fn open() {
     save_btn.connect_clicked(clone!(
         @weak window, @weak vault_entry, @weak target_combo,
         @weak folder_entry, @weak append_entry, @weak template_entry,
-        @weak ts_check, @weak autostart_check, @weak hotkey_entry, @weak lang_combo
+        @weak ts_check, @weak autostart_check, @weak auto_update_check,
+        @weak hotkey_entry, @weak lang_combo
         => move |_| {
             let draft = SettingsDraft {
                 vault_path: trimmed(&vault_entry),
@@ -256,6 +264,7 @@ pub fn open() {
                 prepend_timestamp_header: ts_check.is_active(),
                 hotkey_raw: trimmed(&hotkey_entry),
                 autostart: autostart_check.is_active(),
+                auto_update: auto_update_check.is_active(),
                 language: lang_combo
                     .active_id()
                     .map(|s| s.to_string())
