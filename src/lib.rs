@@ -19,8 +19,8 @@ pub mod ui;
 pub fn init_logging() {
     use tracing_subscriber::EnvFilter;
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,scoria=debug"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,scoria=debug"));
 
     // Use default format with target for better debugging
     tracing_subscriber::fmt()

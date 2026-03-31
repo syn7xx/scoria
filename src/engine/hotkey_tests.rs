@@ -5,7 +5,7 @@ fn test_parse_hotkey_simple_letter() {
     // Single letter key
     let result = parse_hotkey("Ctrl+S");
     assert!(result.is_ok());
-    let hk = result.unwrap();
+    let hk = result.expect("Ctrl+S should parse");
     let _ = hk.id(); // Just verify it was created
 }
 
@@ -31,14 +31,8 @@ fn test_parse_hotkey_function_keys() {
 
 #[test]
 fn test_parse_hotkey_special_keys() {
-    let special_keys = [
-        "Space",
-        "Tab", 
-        "Enter",
-        "Escape",
-        "Esc",
-    ];
-    
+    let special_keys = ["Space", "Tab", "Enter", "Escape", "Esc"];
+
     for key in special_keys {
         let result = parse_hotkey(key);
         assert!(result.is_ok(), "failed for key: {}", key);
@@ -48,7 +42,7 @@ fn test_parse_hotkey_special_keys() {
 #[test]
 fn test_parse_hotkey_with_super() {
     let variants = ["Super+S", "Meta+S", "Win+S", "Cmd+S"];
-    
+
     for spec in variants {
         let result = parse_hotkey(spec);
         assert!(result.is_ok(), "failed for spec: {}", spec);
@@ -68,7 +62,7 @@ fn test_parse_hotkey_numeric() {
 fn test_parse_hotkey_punctuation() {
     // Punctuation keys
     let punctuation = ["Comma", "Period", "Minus", "Equal", "Slash"];
-    
+
     for key in punctuation {
         let result = parse_hotkey(key);
         assert!(result.is_ok(), "failed for key: {}", key);
@@ -97,7 +91,7 @@ fn test_parse_hotkey_invalid_key() {
 fn test_parse_hotkey_case_insensitive_modifiers() {
     // Modifiers should be case-insensitive
     let variants = ["CTRL+S", "ctrl+s", "Ctrl+s", "cTrL+s"];
-    
+
     for spec in variants {
         let result = parse_hotkey(spec);
         assert!(result.is_ok(), "failed for spec: {}", spec);

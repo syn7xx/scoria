@@ -1,6 +1,7 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{bail, ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::i18n;
@@ -76,6 +77,39 @@ fn ensure_config_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn write_file_atomic(path: &Path, contents: &str) -> Result<()> {
+    ensure_config_dir(path)?;
+    let parent = path
+        .parent()
+        .context("config path does not have parent directory")?;
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp_path = parent.join(format!(".config.toml.tmp-{}-{nonce}", std::process::id()));
+
+    {
+        let mut tmp = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)
+            .with_context(|| format!("create {}", tmp_path.display()))?;
+        tmp.write_all(contents.as_bytes())
+            .with_context(|| format!("write {}", tmp_path.display()))?;
+        tmp.sync_all()
+            .with_context(|| format!("sync {}", tmp_path.display()))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    if path.exists() {
+        let _ = std::fs::remove_file(path);
+    }
+
+    std::fs::rename(&tmp_path, path)
+        .with_context(|| format!("rename {} -> {}", tmp_path.display(), path.display()))?;
+    Ok(())
+}
+
 pub fn load() -> Result<Config> {
     let path = config_path()?;
     ensure!(
@@ -98,23 +132,21 @@ pub fn load_or_create() -> Result<Config> {
     }
 
     tracing::info!("no config found, creating default");
-    ensure_config_dir(&path)?;
     let mut default = Config::default();
     if let Some(vault) = best_vault() {
         tracing::info!(vault = %vault.display(), "detected Obsidian vault");
         default.vault_path = vault;
     }
     let s = toml::to_string_pretty(&default).context("serialize default config")?;
-    std::fs::write(&path, &s).with_context(|| format!("write {}", path.display()))?;
+    write_file_atomic(&path, &s)?;
     tracing::info!(path = %path.display(), "created default config");
     Ok(default)
 }
 
 pub fn save(config: &Config) -> Result<()> {
     let path = config_path()?;
-    ensure_config_dir(&path)?;
     let s = toml::to_string_pretty(config).context("serialize config")?;
-    std::fs::write(&path, s).with_context(|| format!("write {}", path.display()))?;
+    write_file_atomic(&path, &s)?;
 
     tracing::info!(path = %path.display(), "config saved");
     Ok(())
@@ -141,14 +173,24 @@ pub fn vault_ready(vault: &Path) -> Result<()> {
 
 pub fn open_in_editor() {
     if let Ok(p) = config_path() {
-        let opener = if cfg!(target_os = "macos") {
-            "open"
-        } else {
-            "xdg-open"
-        };
-        let _ = std::process::Command::new(opener)
-            .arg(p.as_os_str())
-            .spawn();
+        #[cfg(target_os = "macos")]
+        spawn_opener("open", &[], &p);
+
+        #[cfg(target_os = "linux")]
+        spawn_opener("xdg-open", &[], &p);
+
+        #[cfg(target_os = "windows")]
+        spawn_opener("cmd", &["/C", "start", ""], &p);
+
+        #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+        spawn_opener("xdg-open", &[], &p);
+    }
+}
+
+fn spawn_opener(cmd: &str, args: &[&str], path: &Path) {
+    let status = std::process::Command::new(cmd).args(args).arg(path).spawn();
+    if let Err(e) = status {
+        tracing::warn!(command = cmd, error = %e, "failed to open config path");
     }
 }
 

@@ -17,6 +17,8 @@ pub(super) static RU: T = T {
     notif_downloading: "Загрузка {tag}…",
     notif_updated: "Обновлено",
     notif_updated_body: "Обновлено до {tag}. Перезапустите Scoria.",
+    notif_manual_update_body:
+        "Доступна новая версия {tag}. Скачайте MSI из GitHub Releases и установите вручную.",
     notif_up_to_date: "Актуальная версия",
     notif_up_to_date_body: "Scoria v{ver} — последняя версия.",
     notif_update_failed: "Ошибка обновления",
@@ -35,7 +37,8 @@ pub(super) static RU: T = T {
     settings_auto_update: "Автоматически проверять обновления при запуске",
     settings_hotkey_x11: "Глобальная горячая клавиша (необязательно, только X11)",
     settings_hotkey: "Глобальная горячая клавиша (необязательно)",
-    settings_hotkey_wayland: "На Wayland привяжите `scoria save` в Hyprland. Перезапустите после изменения.",
+    settings_hotkey_wayland:
+        "На Wayland привяжите `scoria save` в Hyprland. Перезапустите после изменения.",
     settings_hotkey_hint: "Перезапустите Scoria после изменения горячей клавиши.",
     settings_hotkey_placeholder: "напр. Ctrl+Shift+S",
     settings_browse: "Обзор…",
@@ -52,7 +55,8 @@ pub(super) static RU: T = T {
     err_nothing_to_save: "Нечего сохранять — скопируйте что-нибудь.",
     err_text_empty: "Нечего сохранять (текст пустой).",
     err_image_empty: "Нечего сохранять (данные изображения пусты).",
-    err_vault_path_empty: "Путь к хранилищу не задан. Откройте Настройки или отредактируйте конфиг: {path}",
+    err_vault_path_empty:
+        "Путь к хранилищу не задан. Откройте Настройки или отредактируйте конфиг: {path}",
     err_vault_not_found: "Путь к хранилищу не существует: {path}",
     err_vault_not_dir: "Путь к хранилищу не является папкой: {path}",
 
@@ -65,7 +69,8 @@ pub(super) static RU: T = T {
     alert_save_failed: "Ошибка сохранения",
     alert_no_vaults: "Хранилища не найдены",
     alert_no_vaults_body: "Запустите Obsidian хотя бы один раз, чтобы он зарегистрировал пути.",
-    alert_no_vaults_gtk: "Хранилища Obsidian не найдены.\nУбедитесь, что Obsidian был запущен хотя бы один раз.",
+    alert_no_vaults_gtk:
+        "Хранилища Obsidian не найдены.\nУбедитесь, что Obsidian был запущен хотя бы один раз.",
     alert_choose_vault: "Выбрать хранилище Obsidian",
     alert_multiple_vaults: "Обнаружено несколько хранилищ.",
     alert_pick_vault: "Найдено несколько хранилищ. Выберите одно:",

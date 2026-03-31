@@ -3,9 +3,9 @@
 [Русский](README_RU.md)
 
 Save clipboard content — text **and images** — into an [Obsidian](https://obsidian.md/) vault.
-Works as a **system tray** app on Linux and macOS and as a **CLI** tool.
+Works as a **system tray** app on Linux, macOS, and Windows, and as a **CLI** tool.
 
-Scoria is smart about what to save: on Linux it first checks for **selected text** (primary selection), then falls back to the **clipboard**. On macOS it reads the system clipboard. Just select or copy, then save — one action.
+Scoria is smart about what to save: on Linux it first checks for **selected text** (primary selection), then falls back to the **clipboard**. On macOS it reads the system clipboard. Linux: select or copy, then save. macOS: copy first (`Cmd+C`), then save.
 
 ## Installation
 
@@ -22,13 +22,33 @@ Make sure `~/.local/bin` is in your `PATH`.
 
 ### Pre-built binary (recommended)
 
-One command to install or update:
+Linux/macOS one-command install or update:
 
 ```bash
 curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 ```
 
 Or download manually from the [Releases](https://github.com/syn7xx/scoria/releases) page.
+
+#### Windows
+
+Use the `scoria-windows-x86_64.msi` asset from [Releases](https://github.com/syn7xx/scoria/releases) for the easiest install.
+The installer now runs as a standard wizard: default install path is `Program Files\Scoria`, you can change the directory, and choose whether to create a desktop shortcut.
+
+Portable option: use `scoria-windows-x86_64.zip`, extract `scoria.exe`, and add its folder to `PATH`.
+`install.sh` / `uninstall.sh` are Unix-only.
+
+Or install portable ZIP with one PowerShell command:
+
+```powershell
+irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
+```
+
+For maintainers: winget manifests can be generated from a release SHA256:
+
+```powershell
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.0 -Sha256 "<sha256>"
+```
 
 ### With cargo
 
@@ -64,10 +84,22 @@ From the repository clone:
 ./uninstall.sh
 ```
 
-Or one command (same as `install.sh` style):
+Linux/macOS one command (same as `install.sh` style):
 
 ```bash
 curl -sL https://github.com/syn7xx/scoria/raw/main/uninstall.sh | bash
+```
+
+On Windows (portable ZIP install):
+
+```powershell
+irm https://github.com/syn7xx/scoria/raw/main/uninstall.ps1 | iex
+```
+
+On Windows (MSI install): uninstall from **Apps & Features** or run:
+
+```powershell
+msiexec /x scoria-windows-x86_64.msi
 ```
 
 If you installed with `make install`, you can also run `make uninstall` (binary + icons + launcher only; use the script above to drop config and autostart).
@@ -91,11 +123,12 @@ On Linux (including GNOME without AppIndicator) you can open the GTK settings fr
 scoria settings-gui
 ```
 
-To edit the raw TOML instead, use **Open config file…** in the tray menu or open  
-`~/Library/Application Support/scoria/config.toml` in any editor (e.g. `open -e` for TextEdit).
+On Windows, `scoria settings-gui` opens the native settings window.
+
+To edit the raw TOML instead, use **Open config file…** in the tray menu.
 
 On first launch Scoria will:
-- create the config file (`~/.config/scoria/config.toml` on Linux, `~/Library/Application Support/scoria/config.toml` on macOS)
+- create the config file (`~/.config/scoria/config.toml` on Linux, `~/Library/Application Support/scoria/config.toml` on macOS, `%APPDATA%\\scoria\\config.toml` on Windows)
 - auto-detect your Obsidian vault
 - pick the **interface language** from your system locale (override anytime in **Settings…**)
 - show a tray icon (when using `scoria` / `scoria run`)
@@ -109,9 +142,9 @@ Labels follow your [interface language](#interface-language) setting (defaults t
 | Item | Action |
 |------|--------|
 | **Save to Obsidian** | Save selected text or clipboard content |
-| **Settings…** | GTK settings dialog (Linux) / native AppKit window (macOS) |
+| **Settings…** | GTK settings dialog (Linux) / native AppKit window (macOS) / native Win32 window (Windows) |
 | **Open config file…** | Open config in your default editor |
-| **Check for updates** | Download and install the latest version |
+| **Check for updates** | Linux/macOS: download and install the latest version; Windows: show an update notice and open the latest Releases page for manual MSI/winget update |
 | **Quit** | Exit |
 
 ### What gets saved
@@ -149,6 +182,11 @@ hs.hotkey.bind({"cmd", "shift"}, "V", function()
 end)
 ```
 
+**Windows**
+
+Use PowerToys Keyboard Manager, AutoHotkey, or your preferred launcher to bind:
+- Command: `scoria save`
+
 **X11 (built-in)**
 
 Set `hotkey` in config (e.g. `hotkey = "Ctrl+Shift+S"`) — Scoria registers it while the tray runs. Modifiers: `ctrl`, `alt`, `shift`, `super`; keys: `a`-`z`, `0`-`9`, `F1`-`F12`, `Space`, etc.
@@ -165,8 +203,9 @@ Edit via **Settings…** in the tray menu, or directly in the config file.
 | `append_file` | `Scoria.md` | Vault-relative path when appending |
 | `filename_template` | `clip-%Y-%m-%d-%H%M%S.md` | strftime template for new files |
 | `prepend_timestamp_header` | `true` | Add `## timestamp` header |
-| `hotkey` | *(none)* | Global shortcut (X11 only) |
+| `hotkey` | *(none)* | Global shortcut (X11 and Windows tray mode) |
 | `autostart` | `false` | Start Scoria on login |
+| `auto_update` | `false` | Automatically check for updates on tray startup |
 | `language` | *(empty)* | UI language: empty string = auto from `LANG` / `LC_MESSAGES` / `LC_ALL`, or `en`, `ru` |
 
 ### Interface language
@@ -182,14 +221,17 @@ Enable **"Start Scoria on login"** in Settings (or set `autostart = true` in the
 
 - **Linux**: create a `.desktop` entry in `~/.config/autostart/`
 - **macOS**: create a LaunchAgent in `~/Library/LaunchAgents/`
+- **Windows**: add/remove `Scoria` in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 
 Disabling the checkbox removes the autostart entry.
 
 ## Updating
 
-Scoria checks for updates automatically on tray startup. When a new version is available, you'll see a notification.
+Scoria can check for updates automatically on tray startup when `auto_update = true` (disabled by default). You can always run a manual check from the tray menu.
 
-To update: click **"Check for updates"** in the tray menu — Scoria will download and replace the binary automatically. Restart to apply.
+Linux/macOS: click **"Check for updates"** in the tray menu — Scoria will download and replace the binary automatically. Restart to apply.
+
+Windows: update via MSI/winget (in-app binary replacement is disabled for MSI-safe behavior). The tray command **"Check for updates"** shows a notification and opens the latest [Releases](https://github.com/syn7xx/scoria/releases/latest) page.
 
 Or re-run the install script:
 

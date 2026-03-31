@@ -1,0 +1,44 @@
+name: windows-package
+description: Build Windows ZIP/MSI artifacts with SHA256 files
+
+inputs:
+  target:
+    description: Rust target triple
+    required: true
+  name:
+    description: Artifact base name
+    required: true
+  tag:
+    description: Git tag name (e.g. v0.1.4)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Package Windows archive
+      shell: pwsh
+      run: |
+        Compress-Archive -Path "target/${{ inputs.target }}/release/scoria.exe" -DestinationPath "${{ inputs.name }}.zip" -Force
+        (Get-FileHash "${{ inputs.name }}.zip" -Algorithm SHA256).Hash.ToLower() | Out-File -Encoding ascii "${{ inputs.name }}.sha256"
+
+    - name: Install WiX Toolset
+      shell: pwsh
+      run: |
+        try {
+          choco install wixtoolset --version 3.11.2 --allow-downgrade --no-progress -y
+        } catch {
+          Write-Warning "Failed to install pinned WiX 3.11.2, trying existing WiX from PATH"
+        }
+        if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue)) {
+          throw "candle.exe not found after WiX setup"
+        }
+        candle.exe -nologo -? | Out-Null
+
+    - name: Build Windows MSI
+      shell: pwsh
+      run: |
+        $version = "${{ inputs.tag }}".TrimStart("v")
+        New-Item -ItemType Directory -Force -Path "wixobj" | Out-Null
+        candle.exe -nologo -dVersion="$version" -dSourceDir="target/${{ inputs.target }}/release" -out "wixobj\" "packaging/windows/scoria.wxs"
+        light.exe -nologo -ext WixUIExtension -out "${{ inputs.name }}.msi" "wixobj/scoria.wixobj"
+        (Get-FileHash "${{ inputs.name }}.msi" -Algorithm SHA256).Hash.ToLower() | Out-File -Encoding ascii "${{ inputs.name }}.msi.sha256"

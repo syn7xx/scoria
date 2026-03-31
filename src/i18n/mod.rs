@@ -104,7 +104,8 @@ pub struct T {
     pub notif_updating: &'static str,
     pub notif_downloading: &'static str, // {tag}
     pub notif_updated: &'static str,
-    pub notif_updated_body: &'static str, // {tag}
+    pub notif_updated_body: &'static str,       // {tag}
+    pub notif_manual_update_body: &'static str, // {tag}
     pub notif_up_to_date: &'static str,
     pub notif_up_to_date_body: &'static str, // {ver}
     pub notif_update_failed: &'static str,
@@ -249,6 +250,9 @@ pub fn notif_downloading(tag: &str) -> String {
 }
 pub fn notif_updated_body(tag: &str) -> String {
     tr().notif_updated_body.replace("{tag}", tag)
+}
+pub fn notif_manual_update_body(tag: &str) -> String {
+    tr().notif_manual_update_body.replace("{tag}", tag)
 }
 pub fn notif_up_to_date_body(ver: &str) -> String {
     tr().notif_up_to_date_body.replace("{ver}", ver)

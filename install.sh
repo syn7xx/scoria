@@ -14,6 +14,19 @@ die() {
   exit 1
 }
 
+sha256_file() {
+  local file="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print tolower($1)}'
+    return
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print tolower($1)}'
+    return
+  fi
+  die "Neither sha256sum nor shasum is available."
+}
+
 normalize_arch() {
   case "$1" in
     x86_64)        echo "x86_64" ;;
@@ -83,6 +96,7 @@ ASSET="scoria-${PLATFORM}-${ARCH}.tar.gz"
 LATEST="$(fetch_latest_tag "$REPO")"
 
 URL="https://github.com/${REPO}/releases/download/${LATEST}/${ASSET}"
+SHA_URL="${URL}.sha256"
 
 echo "Installing scoria ${LATEST} (${PLATFORM}/${ARCH})..."
 echo "  from: ${URL}"
@@ -91,7 +105,19 @@ echo "  to:   ${INSTALL_DIR}/scoria"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-curl -sSfL "$URL" | tar -xzf - -C "$TMP"
+ARCHIVE_PATH="${TMP}/${ASSET}"
+SHA_PATH="${TMP}/${ASSET}.sha256"
+
+curl -sSfL "$URL" -o "$ARCHIVE_PATH"
+curl -sSfL "$SHA_URL" -o "$SHA_PATH"
+
+EXPECTED_SHA="$(tr -d '\r\n' < "$SHA_PATH" | awk '{print tolower($1)}')"
+ACTUAL_SHA="$(sha256_file "$ARCHIVE_PATH")"
+if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+  die "Checksum mismatch for ${ASSET}"
+fi
+
+tar -xzf "$ARCHIVE_PATH" -C "$TMP"
 mkdir -p "$INSTALL_DIR"
 install -m 755 "$TMP/scoria" "$INSTALL_DIR/scoria"
 

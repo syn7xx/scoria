@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use crate::engine::config::{Config, SaveTarget};
 use crate::engine::hotkey;
+use crate::engine::path_safety;
 
 /// Raw values from the settings form before validation.
 #[derive(Debug, Clone)]
@@ -31,13 +32,8 @@ pub enum SettingsValidationError {
 }
 
 fn validate_path_component(s: &str, field_name: &str) -> Result<(), SettingsValidationError> {
-    if s.contains("..") || s.starts_with('/') || s.starts_with('\\') {
-        return Err(SettingsValidationError::InvalidPath(format!(
-            "{} contains path traversal characters (.., /, \\)",
-            field_name
-        )));
-    }
-    Ok(())
+    path_safety::validate_relative_fragment(s, field_name)
+        .map_err(SettingsValidationError::InvalidPath)
 }
 
 /// Trim fields, validate, and build a [`Config`] ready to save.

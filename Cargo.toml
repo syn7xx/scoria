@@ -1,8 +1,8 @@
 [package]
 name = "scoria"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
-description = "Save clipboard content (text & images) to an Obsidian vault — system tray + CLI (Linux & macOS)"
+description = "Save clipboard content (text & images) to an Obsidian vault — system tray + CLI (Linux, macOS, Windows)"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/syn7xx/scoria"
 homepage = "https://github.com/syn7xx/scoria"
@@ -47,6 +47,10 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
     "NSString",
     "NSURL",
 ] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+native-windows-gui = "1"
+winrt-notification = "0.5.1"
 
 [build-dependencies]
 icns = "0.4"

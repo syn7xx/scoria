@@ -27,37 +27,46 @@ fn test_validate_valid_draft() {
 fn test_validate_empty_folder() {
     let mut draft = valid_draft();
     draft.folder = "   ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), SettingsValidationError::EmptySubfolder));
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::EmptySubfolder
+    ));
 }
 
 #[test]
 fn test_validate_empty_append_file() {
     let mut draft = valid_draft();
     draft.append_file = "   ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), SettingsValidationError::EmptyAppend));
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::EmptyAppend
+    ));
 }
 
 #[test]
 fn test_validate_empty_template() {
     let mut draft = valid_draft();
     draft.filename_template = "   ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), SettingsValidationError::EmptyTemplate));
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::EmptyTemplate
+    ));
 }
 
 #[test]
 fn test_validate_invalid_hotkey() {
     let mut draft = valid_draft();
     draft.hotkey_raw = "Invalid+Key+XYZ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_err());
     match result.unwrap_err() {
@@ -72,20 +81,22 @@ fn test_validate_invalid_hotkey() {
 fn test_validate_empty_hotkey_is_ok() {
     let mut draft = valid_draft();
     draft.hotkey_raw = "".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().hotkey, None);
+    let cfg = result.expect("empty hotkey should be accepted");
+    assert_eq!(cfg.hotkey, None);
 }
 
 #[test]
 fn test_validate_valid_hotkey_is_stored() {
     let mut draft = valid_draft();
     draft.hotkey_raw = "Ctrl+Shift+S".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().hotkey, Some("Ctrl+Shift+S".into()));
+    let cfg = result.expect("valid hotkey should be accepted");
+    assert_eq!(cfg.hotkey, Some("Ctrl+Shift+S".into()));
 }
 
 #[test]
@@ -94,7 +105,7 @@ fn test_validate_trims_whitespace() {
     draft.folder = "  scoria  ".into();
     draft.append_file = "  Notes.md  ".into();
     draft.filename_template = "  clip.md  ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
     let cfg = result.unwrap();
@@ -107,50 +118,55 @@ fn test_validate_trims_whitespace() {
 fn test_validate_appends_target() {
     let mut draft = valid_draft();
     draft.target = SaveTarget::AppendToFile;
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().target, SaveTarget::AppendToFile);
+    let cfg = result.expect("append target should be preserved");
+    assert_eq!(cfg.target, SaveTarget::AppendToFile);
 }
 
 #[test]
 fn test_validate_prepend_timestamp() {
     let mut draft = valid_draft();
     draft.prepend_timestamp_header = false;
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert!(!result.unwrap().prepend_timestamp_header);
+    let cfg = result.expect("timestamp option should be accepted");
+    assert!(!cfg.prepend_timestamp_header);
 }
 
 #[test]
 fn test_validate_autostart() {
     let mut draft = valid_draft();
     draft.autostart = true;
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert!(result.unwrap().autostart);
+    let cfg = result.expect("autostart option should be accepted");
+    assert!(cfg.autostart);
 }
 
 #[test]
 fn test_validate_language() {
     let mut draft = valid_draft();
     draft.language = "ru".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().language, "ru");
+    let cfg = result.expect("language option should be accepted");
+    assert_eq!(cfg.language, "ru");
 }
 
 #[test]
 fn test_validate_vault_path_trimmed() {
     let mut draft = valid_draft();
     draft.vault_path = "  /test/vault  ".into();
-    
+
     let result = validate_and_build(draft);
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().vault_path.to_string_lossy(), "/test/vault");
+    let cfg = result.expect("vault path should be trimmed");
+    assert_eq!(cfg.vault_path.to_string_lossy(), "/test/vault");
 }
 
 #[test]
@@ -159,4 +175,43 @@ fn test_settings_draft_clone() {
     let cloned = draft.clone();
     assert_eq!(draft.folder, cloned.folder);
     assert_eq!(draft.append_file, cloned.append_file);
+}
+
+#[test]
+fn test_validate_rejects_windows_absolute_append_path() {
+    let mut draft = valid_draft();
+    draft.append_file = r"C:\Temp\Notes.md".into();
+
+    let result = validate_and_build(draft);
+    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::InvalidPath(_)
+    ));
+}
+
+#[test]
+fn test_validate_rejects_unc_append_path() {
+    let mut draft = valid_draft();
+    draft.append_file = r"\\server\share\Notes.md".into();
+
+    let result = validate_and_build(draft);
+    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::InvalidPath(_)
+    ));
+}
+
+#[test]
+fn test_validate_rejects_folder_traversal() {
+    let mut draft = valid_draft();
+    draft.folder = "../outside".into();
+
+    let result = validate_and_build(draft);
+    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap_err(),
+        SettingsValidationError::InvalidPath(_)
+    ));
 }

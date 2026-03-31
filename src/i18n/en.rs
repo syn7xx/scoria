@@ -17,6 +17,7 @@ pub(super) static EN: T = T {
     notif_downloading: "Downloading {tag}…",
     notif_updated: "Updated",
     notif_updated_body: "Updated to {tag}. Restart Scoria to apply.",
+    notif_manual_update_body: "New version {tag} is available. Download the MSI from GitHub Releases and install it manually.",
     notif_up_to_date: "Up to date",
     notif_up_to_date_body: "Scoria v{ver} is the latest.",
     notif_update_failed: "Update failed",

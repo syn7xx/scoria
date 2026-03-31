@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 #[cfg(any(target_os = "macos", test))]
 use crate::i18n;
@@ -8,6 +8,7 @@ pub enum Content {
     Image { data: Vec<u8>, ext: &'static str },
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn run_bytes_timeout(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
     std::process::Command::new(cmd)
         .args(args)
@@ -18,10 +19,15 @@ fn run_bytes_timeout(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
         .map(|o| o.stdout)
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn run_text_timeout(cmd: &str, args: &[&str]) -> Option<String> {
     run_bytes_timeout(cmd, args).and_then(|bytes| {
         let s = String::from_utf8_lossy(&bytes).into_owned();
-        if s.is_empty() { None } else { Some(s) }
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
     })
 }
 
@@ -136,7 +142,9 @@ mod platform {
     fn read_xclip(primary: bool) -> Option<Content> {
         let sel = if primary { "primary" } else { "clipboard" };
         for (target, ext) in [("image/png", "png"), ("image/jpeg", "jpg")] {
-            if let Some(data) = run_bytes_timeout("xclip", &["-selection", sel, "-target", target, "-o"]) {
+            if let Some(data) =
+                run_bytes_timeout("xclip", &["-selection", sel, "-target", target, "-o"])
+            {
                 return Some(Content::Image { data, ext });
             }
         }
@@ -169,90 +177,18 @@ mod platform {
 }
 
 // ---------------------------------------------------------------------------
-// macOS: arboard (primary) -> pbpaste (fallback)
+// macOS: read from clipboard
 // ---------------------------------------------------------------------------
 
 #[cfg(target_os = "macos")]
 mod platform {
     use super::*;
-    use crate::i18n;
-    use std::time::Duration;
-
-    fn copy_selection_to_clipboard_via_cmd_c() -> bool {
-        // Best-effort: ask the focused app to copy the current selection into the system clipboard.
-        // Requires the user's Accessibility permissions for System Events.
-        let script = r#"tell application "System Events" to keystroke "c" using {command down}"#;
-        let status = std::process::Command::new("osascript")
-            .args(["-e", script])
-            .status();
-
-        // Let the clipboard update propagate.
-        std::thread::sleep(Duration::from_millis(200));
-
-        status.map(|s| s.success()).unwrap_or(false)
-    }
 
     pub fn read() -> Result<Content> {
-        // Always copy the current selection into the clipboard first. Reading the clipboard
-        // before this would return whatever was there last time (e.g. after a previous save),
-        // so the hotkey would ignore the new selection while non-empty stale data remained.
-        
-        // Try to copy selection via Cmd+C (requires Accessibility permission).
-        // If it fails (no permission or no selection), we'll read whatever is currently in the clipboard.
-        let cmd_c_ok = copy_selection_to_clipboard_via_cmd_c();
-
-        if !cmd_c_ok {
-            // Synthetic Cmd+C failed (e.g. no selection). User may have copied
-            // manually; read the clipboard as-is.
-            let arboard_initial = read_arboard();
-            let pb_text_initial = run_text_timeout("pbpaste", &[]);
-            return choose_clipboard_content(arboard_initial, pb_text_initial);
-        }
-
-        // Wait for clipboard propagation after Cmd+C.
-        //
-        // Reliability trick for text:
-        // - `arboard` may still contain the *old* clipboard text when the global Cmd+C keystroke
-        //   is in-flight.
-        // - `pbpaste` usually updates faster for text.
-        // Therefore:
-        // - Prefer `pbpaste` text as soon as it becomes available.
-        // - Return `arboard` images immediately (pbpaste won't help for images).
-        // - Only if pbpaste never updates within the retry window, fall back to the last arboard
-        //   text value.
-        let mut last_arboard_text: Option<String> = None;
-
-        for attempt in 0..8 {
-            std::thread::sleep(Duration::from_millis(100));
-
-            let arboard = read_arboard();
-            let pb_text = run_text_timeout("pbpaste", &[]);
-
-            match arboard {
-                Some(Content::Image { data, ext }) => {
-                    // Keep as-is; pbpaste isn't suitable for images.
-                    return Ok(Content::Image { data, ext });
-                }
-                Some(Content::Text(t)) => {
-                    // Store and keep waiting for pbpaste to update.
-                    last_arboard_text = Some(t);
-                }
-                None => {}
-            }
-
-            if let Some(t) = pb_text {
-                return Ok(Content::Text(t));
-            }
-
-            if attempt == 7 {
-                if let Some(t) = last_arboard_text {
-                    return Ok(Content::Text(t));
-                }
-                bail!("{}", i18n::err_nothing_to_save_selection());
-            }
-        }
-
-        bail!("{}", i18n::err_nothing_to_save_selection())
+        // Read from clipboard. User must manually copy selection (Cmd+C) before saving.
+        let arboard_content = read_arboard();
+        let pb_text = run_text_timeout("pbpaste", &[]);
+        choose_clipboard_content(arboard_content, pb_text)
     }
 }
 
@@ -274,16 +210,25 @@ mod platform {
 }
 
 /// Read content: on Linux tries primary selection first, then clipboard.
-/// On macOS/other: reads clipboard via arboard.
+/// On macOS reads clipboard (`arboard` + `pbpaste` for text), on other platforms via `arboard`.
 pub fn read() -> Result<Content> {
     tracing::debug!("reading clipboard");
     let result = platform::read();
     match &result {
         Ok(Content::Text(t)) => {
-            tracing::debug!(content_type = "text", len = t.len(), "clipboard read success");
+            tracing::debug!(
+                content_type = "text",
+                len = t.len(),
+                "clipboard read success"
+            );
         }
         Ok(Content::Image { data, ext }) => {
-            tracing::debug!(content_type = "image", ext = ext, size = data.len(), "clipboard read success");
+            tracing::debug!(
+                content_type = "image",
+                ext = ext,
+                size = data.len(),
+                "clipboard read success"
+            );
         }
         Err(e) => {
             tracing::debug!(error = %e, "clipboard read failed");

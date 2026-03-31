@@ -10,8 +10,14 @@ fn test_save_target_as_id() {
 
 #[test]
 fn test_save_target_from_id() {
-    assert_eq!(SaveTarget::from_id("new_file_in_folder"), Some(SaveTarget::NewFileInFolder));
-    assert_eq!(SaveTarget::from_id("append_to_file"), Some(SaveTarget::AppendToFile));
+    assert_eq!(
+        SaveTarget::from_id("new_file_in_folder"),
+        Some(SaveTarget::NewFileInFolder)
+    );
+    assert_eq!(
+        SaveTarget::from_id("append_to_file"),
+        Some(SaveTarget::AppendToFile)
+    );
     assert_eq!(SaveTarget::from_id("invalid"), None);
 }
 
@@ -43,15 +49,18 @@ fn test_config_serialization_roundtrip() {
         language: "ru".into(),
     };
 
-    let toml_str = toml::to_string_pretty(&cfg).unwrap();
-    let loaded: Config = toml::from_str(&toml_str).unwrap();
+    let toml_str = toml::to_string_pretty(&cfg).expect("serialize config to TOML");
+    let loaded: Config = toml::from_str(&toml_str).expect("deserialize config from TOML");
 
     assert_eq!(cfg.vault_path, loaded.vault_path);
     assert_eq!(cfg.target, loaded.target);
     assert_eq!(cfg.folder, loaded.folder);
     assert_eq!(cfg.append_file, loaded.append_file);
     assert_eq!(cfg.filename_template, loaded.filename_template);
-    assert_eq!(cfg.prepend_timestamp_header, loaded.prepend_timestamp_header);
+    assert_eq!(
+        cfg.prepend_timestamp_header,
+        loaded.prepend_timestamp_header
+    );
     assert_eq!(cfg.hotkey, loaded.hotkey);
     assert_eq!(cfg.autostart, loaded.autostart);
     assert_eq!(cfg.language, loaded.language);
@@ -59,7 +68,7 @@ fn test_config_serialization_roundtrip() {
 
 #[test]
 fn test_vault_ready_empty_path() {
-    let _tmp = TempDir::new().unwrap();
+    let _tmp = TempDir::new().expect("create temp dir");
     let result = vault_ready(Path::new(""));
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
@@ -69,21 +78,25 @@ fn test_vault_ready_empty_path() {
 
 #[test]
 fn test_vault_ready_not_exists() {
-    let tmp = TempDir::new().unwrap();
+    let tmp = TempDir::new().expect("create temp dir");
     let vault_path = tmp.path().join("nonexistent");
     let result = vault_ready(&vault_path);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     // Error message contains the path
-    assert!(err.contains("nonexistent") || err.to_lowercase().contains("not found") || err.to_lowercase().contains("does not exist"));
+    assert!(
+        err.contains("nonexistent")
+            || err.to_lowercase().contains("not found")
+            || err.to_lowercase().contains("does not exist")
+    );
 }
 
 #[test]
 fn test_vault_ready_not_directory() {
-    let tmp = TempDir::new().unwrap();
+    let tmp = TempDir::new().expect("create temp dir");
     let file_path = tmp.path().join("file.txt");
-    fs::write(&file_path, "content").unwrap();
-    
+    fs::write(&file_path, "content").expect("write temp file");
+
     let result = vault_ready(&file_path);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
@@ -92,7 +105,7 @@ fn test_vault_ready_not_directory() {
 
 #[test]
 fn test_vault_ready_valid_directory() {
-    let tmp = TempDir::new().unwrap();
+    let tmp = TempDir::new().expect("create temp dir");
     let result = vault_ready(tmp.path());
     assert!(result.is_ok());
 }
@@ -117,14 +130,14 @@ fn test_detect_obsidian_vaults_invalid_json() {
 
 #[test]
 fn test_detect_obsidian_vaults_valid_config() {
-    let tmp = TempDir::new().unwrap();
+    let tmp = TempDir::new().expect("create temp dir");
     let obsidian_dir = tmp.path().join("obsidian");
-    fs::create_dir_all(&obsidian_dir).unwrap();
-    
+    fs::create_dir_all(&obsidian_dir).expect("create obsidian dir");
+
     // Create a mock vault directory
     let vault1_path = tmp.path().join("vault1");
-    fs::create_dir_all(&vault1_path).unwrap();
-    
+    fs::create_dir_all(&vault1_path).expect("create vault dir");
+
     let json = serde_json::json!({
         "vaults": {
             "vault1": {
@@ -134,9 +147,10 @@ fn test_detect_obsidian_vaults_valid_config() {
             }
         }
     });
-    fs::write(obsidian_dir.join("obsidian.json"), serde_json::to_string(&json).unwrap()).unwrap();
-    
-    // Patch dirs::config_dir temporarily would be complex, 
+    let json_str = serde_json::to_string(&json).expect("serialize obsidian json");
+    fs::write(obsidian_dir.join("obsidian.json"), json_str).expect("write obsidian.json");
+
+    // Patch dirs::config_dir temporarily would be complex,
     // so we just test the parsing logic directly
     // This test verifies the function doesn't panic on valid input
     let vaults = detect_obsidian_vaults();

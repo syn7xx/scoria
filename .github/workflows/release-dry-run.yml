@@ -1,42 +1,33 @@
-name: Release
+name: Release Dry Run
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  DRY_TAG: v0.0.0-dryrun
 
 jobs:
-  build:
-    permissions:
-      contents: read
+  build-and-package:
     strategy:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             name: scoria-linux-x86_64
-          # Native ARM runner avoids glib-sys/pkg-config cross-compile (GTK .pc for arm64 on amd64).
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-24.04-arm
-            name: scoria-linux-aarch64
           - target: x86_64-apple-darwin
             os: macos-latest
             name: scoria-macos-x86_64
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            name: scoria-macos-aarch64
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             name: scoria-windows-x86_64
-
     runs-on: ${{ matrix.os }}
-
     steps:
       - uses: actions/checkout@v5
 
@@ -55,6 +46,24 @@ jobs:
       - name: Build
         run: cargo build --locked --release --target ${{ matrix.target }}
 
+      - name: Run Linux smoke script
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x scripts/smoke/linux.sh
+          scripts/smoke/linux.sh "./target/${{ matrix.target }}/release/scoria"
+
+      - name: Run macOS smoke script
+        if: runner.os == 'macOS'
+        run: |
+          chmod +x scripts/smoke/macos.sh
+          scripts/smoke/macos.sh "./target/${{ matrix.target }}/release/scoria"
+
+      - name: Run Windows smoke script
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          powershell -File scripts/smoke/windows.ps1 -Bin "target/${{ matrix.target }}/release/scoria.exe"
+
       - name: Package Unix artifacts
         if: runner.os != 'Windows'
         uses: ./.github/actions/unix-package
@@ -68,44 +77,37 @@ jobs:
         with:
           target: ${{ matrix.target }}
           name: ${{ matrix.name }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ env.DRY_TAG }}
 
-      - name: Upload Unix artifacts
+      - name: Upload dry-run unix artifacts
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v5
         with:
-          name: ${{ matrix.name }}
+          name: dry-run-${{ matrix.name }}
           path: |
             ${{ matrix.name }}.tar.gz
             ${{ matrix.name }}.tar.gz.sha256
 
-      - name: Upload Windows artifacts
+      - name: Upload dry-run windows artifacts
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v5
         with:
-          name: ${{ matrix.name }}
+          name: dry-run-${{ matrix.name }}
           path: |
             ${{ matrix.name }}.zip
             ${{ matrix.name }}.sha256
             ${{ matrix.name }}.msi
             ${{ matrix.name }}.msi.sha256
 
-  release:
-    needs: build
+  notes-dry-run:
+    needs: build-and-package
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-
+      contents: read
     steps:
-      # Full history + tags so git-cliff can list commits between releases.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: artifacts
 
       - name: Install git-cliff
         env:
@@ -122,29 +124,13 @@ jobs:
           test "${EXPECTED_SHA512}" = "${ACTUAL_SHA512}"
           tar xzf "/tmp/${ARCHIVE}" -C /tmp
           sudo install -m755 "/tmp/git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
-          git-cliff --version
 
-      - name: Generate release notes
-        env:
-          TAG: ${{ github.ref_name }}
+      - name: Generate release notes dry-run
         run: |
           set -euo pipefail
-          PREV="$(git tag -l 'v*' --sort=-version:refname | grep -Fxv "$TAG" | head -1 || true)"
+          PREV="$(git tag -l 'v*' --sort=-version:refname | head -1 || true)"
           if [ -n "${PREV}" ]; then
-            # git-cliff 2.x: one --config; range is positional after --
-            git-cliff --config cliff.github.toml \
-              --strip all --output RELEASE_NOTES.md -- "${PREV}..${TAG}"
+            git-cliff --config cliff.github.toml --strip all --output RELEASE_NOTES_DRY_RUN.md -- "${PREV}..HEAD"
           else
-            git-cliff --config cliff.github.toml \
-              --tag "${TAG}" --strip all --output RELEASE_NOTES.md
+            git-cliff --config cliff.github.toml --strip all --output RELEASE_NOTES_DRY_RUN.md
           fi
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: RELEASE_NOTES.md
-          files: |
-            artifacts/**/*.tar.gz
-            artifacts/**/*.zip
-            artifacts/**/*.sha256
-            artifacts/**/*.msi

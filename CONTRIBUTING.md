@@ -35,16 +35,16 @@ src/
 ├── app/tray/        # System tray implementation
 ├── engine/          # Core logic: clipboard, config, hotkeys, vault, autostart, updates
 ├── i18n/            # Internationalization (English + Russian)
-└── ui/              # Platform-specific UI (GTK on Linux, AppKit on macOS)
+└── ui/              # Platform-specific UI (GTK on Linux, AppKit on macOS, Win32 on Windows)
 ```
 
 Key modules in `engine/`:
 - `clipboard.rs` — reading clipboard (text + images)
 - `vault.rs` — writing to Obsidian vault
 - `config.rs` — configuration file handling
-- `hotkey.rs` — global hotkey registration (X11)
+- `hotkey.rs` — global hotkey registration (X11; Windows uses OS-level tools like PowerToys/AHK)
 - `autostart.rs` — login item management
-- `update.rs` — self-update mechanism
+- `update.rs` — update checks + self-update (Linux/macOS); Windows updates are manual via MSI/winget
 
 ## Submitting Changes
 
@@ -54,6 +54,8 @@ Key modules in `engine/`:
 4. Ensure `make check` and `cargo test` pass
 5. Commit with a clear message describing **why** (not just what)
 6. Open a Pull Request
+
+CI runs on pull requests and `main` pushes (`.github/workflows/ci.yml`) and validates formatting, clippy warnings, tests, and cross-platform build smoke checks.
 
 ### Commit Messages
 
@@ -93,3 +95,7 @@ Open an issue with:
 ## License
 
 By contributing, you agree that your contributions will be licensed under MIT OR Apache-2.0.
+
+## Maintainer note
+
+For release steps and verification checklist, see [docs/release.md](docs/release.md).

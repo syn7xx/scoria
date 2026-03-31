@@ -2,11 +2,12 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use chrono::Local;
 
 use crate::engine::clipboard::Content;
 use crate::engine::config::{Config, SaveTarget};
+use crate::engine::path_safety;
 use crate::i18n;
 
 pub fn save(config: &Config, content: &Content) -> Result<PathBuf> {
@@ -56,10 +57,7 @@ fn format_body(config: &Config, text: &str) -> String {
 }
 
 fn save_new_file(config: &Config, text: &str) -> Result<PathBuf> {
-    let folder = config.vault_path.join(&config.folder);
-
-    // Security: ensure folder is within vault
-    let folder = canonicalize_safe(&folder, &config.vault_path)?;
+    let folder = path_safety::resolve_within_base(&config.vault_path, &config.folder, "folder")?;
 
     std::fs::create_dir_all(&folder)
         .with_context(|| format!("create folder {}", folder.display()))?;
@@ -77,44 +75,9 @@ fn save_new_file(config: &Config, text: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-/// Safely canonicalize path and verify it's within base directory.
-/// Returns error if path attempts to escape base directory.
-fn canonicalize_safe(path: &std::path::Path, base: &std::path::Path) -> Result<std::path::PathBuf> {
-    use anyhow::bail;
-
-    // Check for path traversal in any path (new or existing)
-    for component in path.components() {
-        if component == std::path::Component::ParentDir {
-            bail!("path contains parent directory reference (..)");
-        }
-    }
-
-    // For existing paths, verify canonical path is within vault
-    if path.exists() {
-        let canonical = std::fs::canonicalize(path)
-            .with_context(|| format!("canonicalize {}", path.display()))?;
-
-        let base_canonical = std::fs::canonicalize(base)
-            .with_context(|| format!("canonicalize base {}", base.display()))?;
-
-        if !canonical.starts_with(&base_canonical) {
-            bail!("path escapes vault directory");
-        }
-        return Ok(canonical);
-    }
-
-    Ok(path.to_path_buf())
-}
-
 fn append_to_file(config: &Config, text: &str) -> Result<PathBuf> {
-    let append_path = &config.append_file;
-    
-    // Security: validate append_file doesn't contain path traversal
-    if append_path.contains("..") || append_path.starts_with('/') {
-        anyhow::bail!("append_file contains invalid characters (../ or absolute path not allowed)");
-    }
-    
-    let path = config.vault_path.join(append_path);
+    let path =
+        path_safety::resolve_within_base(&config.vault_path, &config.append_file, "append_file")?;
 
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
@@ -150,10 +113,7 @@ fn save_image(config: &Config, data: &[u8], ext: &str) -> Result<PathBuf> {
     }
 
     let now = Local::now();
-    let folder = config.vault_path.join(&config.folder);
-    
-    // Security: ensure folder is within vault
-    let folder = canonicalize_safe(&folder, &config.vault_path)?;
+    let folder = path_safety::resolve_within_base(&config.vault_path, &config.folder, "folder")?;
     let attachments = folder.join("attachments");
 
     std::fs::create_dir_all(&attachments)

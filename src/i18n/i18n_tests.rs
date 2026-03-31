@@ -2,7 +2,7 @@ use super::*;
 
 /// Reset language to None for clean test state
 fn reset_lang() {
-    *LANG.write().unwrap() = None;
+    *LANG.write().expect("lock LANG for reset") = None;
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn test_tr_fields_are_not_empty() {
     reset_lang();
     apply("en");
     let t = tr();
-    
+
     // All fields should be non-empty
     assert!(!t.menu_save.is_empty());
     assert!(!t.menu_settings.is_empty());
@@ -102,10 +102,10 @@ fn test_tr_fields_are_not_empty() {
     assert!(!t.menu_update.is_empty());
     assert!(!t.menu_quit.is_empty());
     assert!(!t.tooltip.is_empty());
-    
+
     assert!(!t.notif_saved_title.is_empty());
     assert!(!t.notif_save_failed.is_empty());
-    
+
     assert!(!t.settings_title.is_empty());
     assert!(!t.settings_vault.is_empty());
     assert!(!t.settings_folder.is_empty());
@@ -116,10 +116,10 @@ fn test_apply_can_be_called_multiple_times() {
     reset_lang();
     apply("en");
     assert_eq!(current(), Lang::En);
-    
+
     apply("ru");
     assert_eq!(current(), Lang::Ru);
-    
+
     apply("en");
     assert_eq!(current(), Lang::En);
 }
@@ -128,7 +128,7 @@ fn test_apply_can_be_called_multiple_times() {
 fn test_convenience_functions_exist() {
     reset_lang();
     apply("en");
-    
+
     // These should all compile and not panic
     let _ = menu_save();
     let _ = menu_settings();
@@ -144,20 +144,20 @@ fn test_convenience_functions_exist() {
 fn test_format_template_functions() {
     reset_lang();
     apply("en");
-    
+
     // These should all compile and return String
     let path = "/test/path";
     let body = notif_saved_body(path);
     assert!(body.contains(path));
-    
+
     let msg = "v1.0.0";
     let update_body = notif_update_available_body(msg);
     assert!(update_body.contains(msg));
-    
+
     let tag = "v1.0.0";
     let downloading = notif_downloading(tag);
     assert!(downloading.contains(tag));
-    
+
     let ver = "1.0.0";
     let up_to_date = notif_up_to_date_body(ver);
     assert!(up_to_date.contains(ver));
@@ -167,14 +167,14 @@ fn test_format_template_functions() {
 fn test_err_vault_functions() {
     reset_lang();
     apply("en");
-    
+
     let path = "/nonexistent";
     let err = err_vault_path_empty(path);
     assert!(err.contains(path));
-    
+
     let err = err_vault_not_found(path);
     assert!(err.contains(path));
-    
+
     let err = err_vault_not_dir(path);
     assert!(err.contains(path));
 }

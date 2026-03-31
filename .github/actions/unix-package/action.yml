@@ -1,0 +1,24 @@
+name: unix-package
+description: Build Unix tar.gz release artifact
+
+inputs:
+  target:
+    description: Rust target triple
+    required: true
+  name:
+    description: Artifact base name
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Package Unix archive
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "target/${{ inputs.target }}/release"
+        test -x ./scoria
+        ./scoria --version >/dev/null
+        tar czf "../../../${{ inputs.name }}.tar.gz" scoria
+        cd ../../..
+        sha256sum "${{ inputs.name }}.tar.gz" | awk '{print tolower($1)}' > "${{ inputs.name }}.tar.gz.sha256"

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="Scoria"
+    Language="1033"
+    Version="$(var.Version)"
+    Manufacturer="syn7xx"
+    UpgradeCode="A9B1C3F4-6D18-4F85-9B51-3E2A31B4E2D9">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+    <Icon Id="ScoriaProductIcon" SourceFile="$(var.SourceDir)\scoria.exe" />
+    <Property Id="ARPPRODUCTICON" Value="ScoriaProductIcon" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UIRef Id="WixUI_Mondo" />
+
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Scoria is already installed." />
+    <MediaTemplate />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="Scoria" />
+      </Directory>
+      <Directory Id="CommonProgramsFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Scoria" />
+      </Directory>
+      <Directory Id="CommonDesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ScoriaExeComponent" Guid="8A0F0F64-9D54-4BE7-A4F7-4A090B1EAB8A" Win64="yes">
+        <File Id="ScoriaExeFile" Source="$(var.SourceDir)\scoria.exe" KeyPath="yes" />
+        <Environment
+          Id="ScoriaPath"
+          Name="PATH"
+          Action="set"
+          Part="last"
+          System="yes"
+          Value="[INSTALLFOLDER]" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcutComponent" Guid="BA094A84-14DC-4A20-8785-F3374B5B8F62" Win64="yes">
+        <Shortcut
+          Id="StartMenuShortcut"
+          Name="Scoria"
+          Description="Save clipboard to Obsidian vault"
+          Target="[INSTALLFOLDER]scoria.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\syn7xx\Scoria"
+          Name="StartMenuShortcut"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="CommonDesktopFolder">
+      <Component Id="DesktopShortcutComponent" Guid="E0AD5B29-DA42-4D80-BF7A-A4FF0B7075B0" Win64="yes">
+        <Shortcut
+          Id="DesktopShortcut"
+          Name="Scoria"
+          Description="Save clipboard to Obsidian vault"
+          Target="[INSTALLFOLDER]scoria.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue
+          Root="HKLM"
+          Key="Software\syn7xx\Scoria"
+          Name="DesktopShortcut"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainFeature" Title="Scoria" Level="1">
+      <ComponentRef Id="ScoriaExeComponent" />
+      <ComponentRef Id="StartMenuShortcutComponent" />
+    </Feature>
+    <Feature Id="DesktopShortcutFeature" Title="Desktop shortcut" Level="2">
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+  </Product>
+</Wix>

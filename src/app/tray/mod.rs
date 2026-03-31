@@ -39,7 +39,7 @@ fn status_notifier_watcher_available() -> bool {
     );
 
     // NameHasOwner returns a single boolean, so the typed return must be a 1-tuple: (bool,)
-    let (has_owner,) : (bool,) = proxy
+    let (has_owner,): (bool,) = proxy
         .method_call(
             "org.freedesktop.DBus",
             "NameHasOwner",
@@ -147,7 +147,7 @@ pub fn run() -> Result<()> {
     let hk_manager = Arc::new(std::sync::Mutex::new(hk_manager));
     let hk_manager_clone = hk_manager.clone();
 
-    watch::watch_config_bg(event_loop.create_proxy());
+    watch::watch_config_bg(event_loop.create_proxy(), should_exit.clone());
 
     tracing::info!("scoria started successfully");
 
@@ -166,14 +166,13 @@ pub fn run() -> Result<()> {
                 actions::handle_menu(e.id.as_ref(), control_flow);
             }
             Event::UserEvent(UserEvent::HotKey(e))
-                if e.state == HotKeyState::Pressed && hotkey_id_clone.load(Ordering::SeqCst) == e.id =>
+                if e.state == HotKeyState::Pressed
+                    && hotkey_id_clone.load(Ordering::SeqCst) == e.id =>
             {
                 actions::handle_menu(menu::MENU_SAVE, control_flow);
             }
             Event::UserEvent(UserEvent::ConfigChanged) => {
-                if let (Some(tray), Some(menu_items)) =
-                    (tray.as_ref(), menu_items.as_ref())
-                {
+                if let (Some(tray), Some(menu_items)) = (tray.as_ref(), menu_items.as_ref()) {
                     actions::on_config_changed(tray, menu_items);
                 }
 
@@ -181,8 +180,17 @@ pub fn run() -> Result<()> {
                 if let Ok(cfg) = config::load() {
                     autostart::apply(cfg.autostart);
 
-                    let mut mgr = hk_manager_clone.lock().unwrap();
+                    let mut mgr = match hk_manager_clone.lock() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => {
+                            tracing::warn!("hotkey manager lock was poisoned, recovering");
+                            poisoned.into_inner()
+                        }
+                    };
                     *mgr = None;
+                    // Clear active id before re-register to avoid keeping stale id
+                    // when parsing/registration fails for the new config value.
+                    hotkey_id_clone.store(0, std::sync::atomic::Ordering::SeqCst);
 
                     let (new_id, new_mgr) = hotkey_reg::try_register_hotkey(&cfg);
                     *mgr = new_mgr;
