@@ -8,7 +8,8 @@ These scripts verify basic CLI behavior:
 
 - version/help output works
 - subcommand help works
-- `save` fails gracefully when clipboard has no content
+- **Linux / macOS:** `save` fails gracefully when clipboard has no content
+- **Windows (automated):** only version/help and subcommand help — **`save` is not run** in CI (headless runners can crash in native clipboard code). Exercise a real `scoria save` on a desktop session (manual checklist below).
 
 Scripts:
 
@@ -48,12 +49,13 @@ powershell -File scripts/smoke/windows.ps1 -Bin .\target\x86_64-pc-windows-msvc\
 ### Windows
 
 1. Start tray: `scoria run`.
-2. Verify native settings window opens from tray and from `scoria settings-gui`.
-3. Trigger **Check for updates** and verify:
+2. Copy text to the clipboard, run `scoria save` from a terminal, and confirm a note is created in the vault (automated CI smoke does not run `save` — see above).
+3. Verify native settings window opens from tray and from `scoria settings-gui`.
+4. Trigger **Check for updates** and verify:
    - notification explains manual update path
    - Releases page opens.
-4. Toggle autostart and verify Run key add/remove under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
-5. Validate MSI install and portable ZIP install both run correctly.
+5. Toggle autostart and verify Run key add/remove under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+6. Validate MSI install and portable ZIP install both run correctly.
 
 ## 3) Release artifact smoke
 
