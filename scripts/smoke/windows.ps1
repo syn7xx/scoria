@@ -4,6 +4,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if (-not (Test-Path -LiteralPath $Bin)) {
+    throw "Binary not found: $Bin"
+}
+
 Write-Host "[windows] smoke: version"
 & $Bin --version *> $null
 
