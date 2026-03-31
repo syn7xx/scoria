@@ -47,7 +47,7 @@ irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
 For maintainers: winget manifests can be generated from a release SHA256:
 
 ```powershell
-powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.0 -Sha256 "<sha256>"
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.1 -Sha256 "<sha256>"
 ```
 
 ### With cargo
