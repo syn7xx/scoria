@@ -1,13 +1,17 @@
 use std::path::{Path, PathBuf};
 
 pub fn apply(enabled: bool) {
+    tracing::debug!(enabled = enabled, "applying autostart setting");
     let Ok(exe) = std::env::current_exe() else {
+        tracing::warn!("could not determine executable path for autostart");
         return;
     };
     if enabled {
         enable(&exe);
+        tracing::info!("autostart enabled");
     } else {
         disable();
+        tracing::info!("autostart disabled");
     }
 }
 

@@ -85,24 +85,28 @@ pub fn load() -> Result<Config> {
     );
 
     let s = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
-    toml::from_str(&s).context("parse config.toml")
+    let cfg: Config = toml::from_str(&s).context("parse config.toml")?;
+    tracing::debug!(vault = %cfg.vault_path.display(), autostart = cfg.autostart, auto_update = cfg.auto_update, "config loaded");
+    Ok(cfg)
 }
 
 pub fn load_or_create() -> Result<Config> {
     let path = config_path()?;
     if path.exists() {
+        tracing::debug!(path = %path.display(), "loading existing config");
         return load();
     }
 
+    tracing::info!("no config found, creating default");
     ensure_config_dir(&path)?;
     let mut default = Config::default();
     if let Some(vault) = best_vault() {
-        eprintln!("scoria: detected Obsidian vault at {}", vault.display());
+        tracing::info!(vault = %vault.display(), "detected Obsidian vault");
         default.vault_path = vault;
     }
     let s = toml::to_string_pretty(&default).context("serialize default config")?;
     std::fs::write(&path, &s).with_context(|| format!("write {}", path.display()))?;
-    eprintln!("Created default config at {}.", path.display());
+    tracing::info!(path = %path.display(), "created default config");
     Ok(default)
 }
 
@@ -112,7 +116,7 @@ pub fn save(config: &Config) -> Result<()> {
     let s = toml::to_string_pretty(config).context("serialize config")?;
     std::fs::write(&path, s).with_context(|| format!("write {}", path.display()))?;
 
-    tracing::debug!(path = %path.display(), "config saved");
+    tracing::info!(path = %path.display(), "config saved");
     Ok(())
 }
 

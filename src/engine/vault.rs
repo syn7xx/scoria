@@ -13,20 +13,36 @@ pub fn save(config: &Config, content: &Content) -> Result<PathBuf> {
     crate::engine::config::vault_ready(&config.vault_path)?;
 
     match content {
-        Content::Text(text) => save_text(config, text),
-        Content::Image { data, ext } => save_image(config, data, ext),
+        Content::Text(text) => {
+            let len = text.len();
+            let result = save_text(config, text)?;
+            tracing::debug!(target = ?config.target, text_len = len, "text saved");
+            Ok(result)
+        }
+        Content::Image { data, ext } => {
+            let len = data.len();
+            let result = save_image(config, data, ext)?;
+            tracing::debug!(ext = ext, size_bytes = len, "image saved");
+            Ok(result)
+        }
     }
 }
 
 fn save_text(config: &Config, text: &str) -> Result<PathBuf> {
     if text.is_empty() {
+        tracing::warn!("attempted to save empty text");
         bail!("{}", i18n::err_text_empty());
     }
 
-    match config.target {
+    let result = match config.target {
         SaveTarget::NewFileInFolder => save_new_file(config, text),
         SaveTarget::AppendToFile => append_to_file(config, text),
+    };
+
+    if let Ok(ref path) = result {
+        tracing::debug!(target = ?config.target, path = %path.display(), "text save complete");
     }
+    result
 }
 
 fn format_body(config: &Config, text: &str) -> String {

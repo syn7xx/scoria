@@ -293,7 +293,20 @@ mod platform {
 /// Read content: on Linux tries primary selection first, then clipboard.
 /// On macOS/other: reads clipboard via arboard.
 pub fn read() -> Result<Content> {
-    platform::read()
+    tracing::debug!("reading clipboard");
+    let result = platform::read();
+    match &result {
+        Ok(Content::Text(t)) => {
+            tracing::debug!(content_type = "text", len = t.len(), "clipboard read success");
+        }
+        Ok(Content::Image { data, ext }) => {
+            tracing::debug!(content_type = "image", ext = ext, size = data.len(), "clipboard read success");
+        }
+        Err(e) => {
+            tracing::debug!(error = %e, "clipboard read failed");
+        }
+    }
+    result
 }
 
 #[cfg(test)]
