@@ -15,7 +15,8 @@
 
     <MajorUpgrade
       DowngradeErrorMessage="A newer version of Scoria is already installed." />
-    <MediaTemplate />
+    <!-- Embed the cabinet in the MSI so a single file can be distributed (no separate cab1.cab). -->
+    <MediaTemplate EmbedCab="yes" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
