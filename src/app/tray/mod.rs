@@ -142,7 +142,6 @@ pub fn run() -> Result<()> {
     let hk_manager = Arc::new(std::sync::Mutex::new(hk_manager));
     let hk_manager_clone = hk_manager.clone();
 
-    actions::check_for_updates_bg();
     watch::watch_config_bg(event_loop.create_proxy());
 
     tracing::info!("scoria started successfully");
