@@ -56,6 +56,8 @@ enum UserEvent {
     HotKey(GlobalHotKeyEvent),
     /// Fired by the config-watcher thread when config.toml is modified.
     ConfigChanged,
+    /// Fired by signal handler to trigger shutdown.
+    Shutdown,
 }
 
 /// Start the tray icon and event loop (Linux / macOS).
@@ -92,11 +94,14 @@ pub fn run() -> Result<()> {
     // Graceful shutdown flag
     let should_exit = Arc::new(AtomicBool::new(false));
     let should_exit_clone = should_exit.clone();
+    let proxy_clone = proxy.clone();
 
-    // Set up signal handler
+    // Set up signal handler - wake up event loop
     ctrlc::set_handler(move || {
         tracing::info!("received shutdown signal");
         should_exit_clone.store(true, Ordering::SeqCst);
+        // Send event to wake up the event loop
+        let _ = proxy_clone.send_event(UserEvent::Shutdown);
     })?;
 
     tray_icon::menu::MenuEvent::set_event_handler(Some({
@@ -187,6 +192,10 @@ pub fn run() -> Result<()> {
 
                     tracing::info!("config changed, hotkey reloaded");
                 }
+            }
+            Event::UserEvent(UserEvent::Shutdown) => {
+                tracing::info!("shutdown event received, exiting");
+                *control_flow = ControlFlow::Exit;
             }
             _ => {}
         }

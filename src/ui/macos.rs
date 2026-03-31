@@ -455,6 +455,9 @@ define_class!(
                     SettingsValidationError::InvalidHotkey(msg) => {
                         show_alert(mtm, i18n::alert_invalid_hotkey(), &msg);
                     }
+                    SettingsValidationError::InvalidPath(msg) => {
+                        show_alert(mtm, "Invalid path", msg);
+                    }
                 },
             }
         }

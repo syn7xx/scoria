@@ -303,6 +303,13 @@ pub fn open() {
                             &format!("{}: {msg}", i18n::alert_invalid_hotkey()),
                         );
                     }
+                    SettingsValidationError::InvalidPath(msg) => {
+                        alert(
+                            &window,
+                            MessageType::Error,
+                            &format!("Invalid path: {msg}"),
+                        );
+                    }
                 },
             }
         }

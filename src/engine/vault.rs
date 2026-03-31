@@ -58,10 +58,17 @@ fn format_body(config: &Config, text: &str) -> String {
 fn save_new_file(config: &Config, text: &str) -> Result<PathBuf> {
     let folder = config.vault_path.join(&config.folder);
 
+    // Security: ensure folder is within vault
+    let folder = canonicalize_safe(&folder, &config.vault_path)?;
+
     std::fs::create_dir_all(&folder)
         .with_context(|| format!("create folder {}", folder.display()))?;
 
     let name = Local::now().format(&config.filename_template).to_string();
+    // Security: validate filename doesn't contain path traversal
+    if name.contains("..") || name.starts_with('/') {
+        anyhow::bail!("filename contains invalid characters");
+    }
     let path = folder.join(name);
 
     std::fs::write(&path, format_body(config, text))
@@ -70,8 +77,49 @@ fn save_new_file(config: &Config, text: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
+/// Safely canonicalize path and verify it's within base directory.
+/// Returns error if path attempts to escape base directory.
+fn canonicalize_safe(path: &std::path::Path, base: &std::path::Path) -> Result<std::path::PathBuf> {
+    use anyhow::bail;
+    
+    // For new paths, just ensure they don't contain traversal
+    if let Some(components) = path.components().next() {
+        match components {
+            std::path::Component::Normal(_) => {}
+            std::path::Component::ParentDir => {
+                bail!("path contains parent directory reference (..)");
+            }
+            _ => {}
+        }
+    }
+    
+    // Try to canonicalize existing paths
+    if path.exists() {
+        let canonical = std::fs::canonicalize(path)
+            .with_context(|| format!("canonicalize {}", path.display()))?;
+        
+        // Verify canonical path is within vault
+        let base_canonical = std::fs::canonicalize(base)
+            .with_context(|| format!("canonicalize base {}", base.display()))?;
+        
+        if !canonical.starts_with(&base_canonical) {
+            bail!("path escapes vault directory");
+        }
+        return Ok(canonical);
+    }
+    
+    Ok(path.to_path_buf())
+}
+
 fn append_to_file(config: &Config, text: &str) -> Result<PathBuf> {
-    let path = config.vault_path.join(&config.append_file);
+    let append_path = &config.append_file;
+    
+    // Security: validate append_file doesn't contain path traversal
+    if append_path.contains("..") || append_path.starts_with('/') {
+        anyhow::bail!("append_file contains invalid characters (../ or absolute path not allowed)");
+    }
+    
+    let path = config.vault_path.join(append_path);
 
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
@@ -101,8 +149,16 @@ fn save_image(config: &Config, data: &[u8], ext: &str) -> Result<PathBuf> {
         bail!("{}", i18n::err_image_empty());
     }
 
+    // Security: validate extension
+    if ext.contains("..") || ext.contains('/') || ext.contains('\\') {
+        bail!("image extension contains invalid characters");
+    }
+
     let now = Local::now();
     let folder = config.vault_path.join(&config.folder);
+    
+    // Security: ensure folder is within vault
+    let folder = canonicalize_safe(&folder, &config.vault_path)?;
     let attachments = folder.join("attachments");
 
     std::fs::create_dir_all(&attachments)
@@ -115,6 +171,7 @@ fn save_image(config: &Config, data: &[u8], ext: &str) -> Result<PathBuf> {
     std::fs::write(&img_path, data).with_context(|| format!("write {}", img_path.display()))?;
 
     let md_name = format!("clip-{stamp}.md");
+
     let md_path = folder.join(&md_name);
     let embed = format!("![[attachments/{img_name}]]");
     let body = if config.prepend_timestamp_header {

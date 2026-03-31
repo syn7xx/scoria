@@ -198,6 +198,16 @@ mod platform {
     use crate::i18n;
     use std::time::Duration;
 
+    /// Check if Accessibility permission is granted for System Events.
+    fn check_accessibility_permission() -> bool {
+        let script = r#"tell application "System Events" to keystroke "a""#;
+        std::process::Command::new("osascript")
+            .args(["-e", script])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+
     fn copy_selection_to_clipboard_via_cmd_c() -> bool {
         // Best-effort: ask the focused app to copy the current selection into the system clipboard.
         // Requires the user's Accessibility permissions for System Events.
@@ -216,10 +226,18 @@ mod platform {
         // Always copy the current selection into the clipboard first. Reading the clipboard
         // before this would return whatever was there last time (e.g. after a previous save),
         // so the hotkey would ignore the new selection while non-empty stale data remained.
+        
+        // First check if we have accessibility permission
+        if !check_accessibility_permission() {
+            tracing::warn!("Accessibility permission not granted for selection copy");
+            // Return specific error so UI can show notification
+            bail!("{}", i18n::err_accessibility_permission());
+        }
+
         let cmd_c_ok = copy_selection_to_clipboard_via_cmd_c();
 
         if !cmd_c_ok {
-            // Synthetic Cmd+C failed (e.g. Accessibility permission). User may have copied
+            // Synthetic Cmd+C failed (e.g. no selection). User may have copied
             // manually; read the clipboard as-is.
             let arboard_initial = read_arboard();
             let pb_text_initial = run_text_timeout("pbpaste", &[]);

@@ -27,6 +27,17 @@ pub enum SettingsValidationError {
     EmptyAppend,
     EmptyTemplate,
     InvalidHotkey(String),
+    InvalidPath(String),
+}
+
+fn validate_path_component(s: &str, field_name: &str) -> Result<(), SettingsValidationError> {
+    if s.contains("..") || s.starts_with('/') || s.starts_with('\\') {
+        return Err(SettingsValidationError::InvalidPath(format!(
+            "{} contains path traversal characters (.., /, \\)",
+            field_name
+        )));
+    }
+    Ok(())
 }
 
 /// Trim fields, validate, and build a [`Config`] ready to save.
@@ -35,15 +46,23 @@ pub fn validate_and_build(draft: SettingsDraft) -> Result<Config, SettingsValida
     if folder.is_empty() {
         return Err(SettingsValidationError::EmptySubfolder);
     }
+    validate_path_component(folder, "folder")?;
 
     let append_file = draft.append_file.trim();
     if append_file.is_empty() {
         return Err(SettingsValidationError::EmptyAppend);
     }
+    validate_path_component(append_file, "append_file")?;
 
     let filename_template = draft.filename_template.trim();
     if filename_template.is_empty() {
         return Err(SettingsValidationError::EmptyTemplate);
+    }
+    // Filename template shouldn't have path separators
+    if filename_template.contains('/') || filename_template.contains('\\') {
+        return Err(SettingsValidationError::InvalidPath(
+            "filename_template cannot contain path separators".into(),
+        ));
     }
 
     let hotkey = match draft.hotkey_raw.trim() {
