@@ -206,6 +206,10 @@ make fmt      # cargo fmt
 make clean    # cargo clean
 ```
 
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
 ## License
 
 MIT OR Apache-2.0

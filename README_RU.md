@@ -206,6 +206,10 @@ make fmt      # cargo fmt
 make clean    # cargo clean
 ```
 
+## Внесение вклада
+
+Мы приветствуем вклады! Подробности в [CONTRIBUTING_RU.md](CONTRIBUTING_RU.md).
+
 ## Лицензия
 
 MIT OR Apache-2.0
