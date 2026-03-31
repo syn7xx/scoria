@@ -157,6 +157,7 @@ pub struct T {
     pub alert_empty_append: &'static str,
     pub alert_empty_template: &'static str,
     pub alert_invalid_hotkey: &'static str,
+    pub alert_invalid_path: &'static str, // {msg}
     pub alert_save_failed: &'static str,
     pub alert_no_vaults: &'static str,
     pub alert_no_vaults_body: &'static str,
@@ -265,6 +266,9 @@ pub fn err_vault_not_found(path: &str) -> String {
 }
 pub fn err_vault_not_dir(path: &str) -> String {
     tr().err_vault_not_dir.replace("{path}", path)
+}
+pub fn alert_invalid_path(msg: &str) -> String {
+    tr().alert_invalid_path.replace("{msg}", msg)
 }
 
 #[cfg(test)]

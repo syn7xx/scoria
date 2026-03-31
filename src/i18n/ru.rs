@@ -66,6 +66,7 @@ pub(super) static RU: T = T {
     alert_empty_append: "Цель дописывания не может быть пустой.",
     alert_empty_template: "Шаблон имени файла не может быть пустым.",
     alert_invalid_hotkey: "Неверная горячая клавиша",
+    alert_invalid_path: "Неверный путь: {msg}",
     alert_save_failed: "Ошибка сохранения",
     alert_no_vaults: "Хранилища не найдены",
     alert_no_vaults_body: "Запустите Obsidian хотя бы один раз, чтобы он зарегистрировал пути.",

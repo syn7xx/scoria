@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use anyhow::Result;
 #[cfg(not(target_os = "windows"))]
 use anyhow::{ensure, Context};
+use semver::Version;
 
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const RELEASES_API: &str = "https://api.github.com/repos/syn7xx/scoria/releases/latest";
@@ -110,11 +111,14 @@ fn fetch_latest_tag() -> Option<String> {
 }
 
 fn version_newer(latest: &str, current: &str) -> bool {
-    parse_version(latest) > parse_version(current)
+    match (parse_semver(latest), parse_semver(current)) {
+        (Some(latest), Some(current)) => latest > current,
+        _ => false,
+    }
 }
 
-fn parse_version(s: &str) -> Vec<u32> {
-    s.split('.').filter_map(|part| part.parse().ok()).collect()
+fn parse_semver(s: &str) -> Option<Version> {
+    Version::parse(strip_v(s)).ok()
 }
 
 fn strip_v(tag: &str) -> &str {
@@ -124,31 +128,18 @@ fn strip_v(tag: &str) -> &str {
 #[cfg(not(target_os = "windows"))]
 fn asset_name() -> String {
     let (os, arch) = current_asset_triplet();
-
-    let ext = if cfg!(target_os = "windows") {
-        "zip"
-    } else {
-        "tar.gz"
-    };
-
-    format!("scoria-{os}-{arch}.{ext}")
+    format!("scoria-{os}-{arch}.tar.gz")
 }
 
 #[cfg(not(target_os = "windows"))]
 fn asset_archive_filename() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "scoria.zip"
-    } else {
-        "scoria.tar.gz"
-    }
+    "scoria.tar.gz"
 }
 
 #[cfg(not(target_os = "windows"))]
 fn current_asset_triplet() -> (&'static str, &'static str) {
     let os = if cfg!(target_os = "macos") {
         "macos"
-    } else if cfg!(target_os = "windows") {
-        "windows"
     } else {
         "linux"
     };

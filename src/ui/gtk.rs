@@ -307,7 +307,7 @@ pub fn open() {
                         alert(
                             &window,
                             MessageType::Error,
-                            &format!("Invalid path: {msg}"),
+                            &i18n::alert_invalid_path(&msg),
                         );
                     }
                 },

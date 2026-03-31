@@ -85,7 +85,7 @@ fn test_save_text_empty() {
     let result = save(&cfg, &content);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("empty"));
+    assert!(err.contains("empty") || err.contains("пуст"));
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn test_save_image_empty() {
     let result = save(&cfg, &content);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("empty"));
+    assert!(err.contains("empty") || err.contains("пуст"));
 }
 
 #[test]

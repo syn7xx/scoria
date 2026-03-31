@@ -49,25 +49,20 @@ fn test_version_newer_complex() {
 }
 
 #[test]
-fn test_parse_version() {
-    assert_eq!(parse_version("1.2.3"), vec![1, 2, 3]);
-    assert_eq!(parse_version("0.0.0"), vec![0, 0, 0]);
-    assert_eq!(parse_version("10.20.30"), vec![10, 20, 30]);
+fn test_parse_semver() {
+    assert!(parse_semver("1.2.3").is_some());
+    assert!(parse_semver("0.0.0").is_some());
+    assert!(parse_semver("10.20.30").is_some());
 }
 
 #[test]
-fn test_parse_version_unusual() {
-    // Extra dots - all parts are parsed
-    let parts = parse_version("1.2.3.4.5");
-    assert_eq!(parts, vec![1, 2, 3, 4, 5]);
-
-    // Non-numeric parts are ignored
-    let parts = parse_version("1.2.beta");
-    assert_eq!(parts, vec![1, 2]);
-
-    // Empty string
-    let parts = parse_version("");
-    assert!(parts.is_empty());
+fn test_parse_semver_unusual() {
+    // Valid semver with pre-release/build metadata
+    assert!(parse_semver("1.2.3-beta.1+build.7").is_some());
+    // Invalid semver forms
+    assert!(parse_semver("1.2").is_none());
+    assert!(parse_semver("1.2.beta").is_none());
+    assert!(parse_semver("").is_none());
 }
 
 #[test]
@@ -159,11 +154,11 @@ fn test_version_comparison_edge_cases() {
     assert!(version_newer("10.0.0", "9.0.0"));
     assert!(version_newer("2.0.0", "1.0.0"));
 
-    // Alpha/beta suffixes (parsed as 0)
-    assert!(version_newer("1.0.0", "1.0.0alpha"));
+    // Stable release is newer than prerelease
+    assert!(version_newer("1.0.0", "1.0.0-alpha.1"));
 
-    // Very long version numbers
-    assert!(version_newer("1.2.3.4.5.6.7.8.9", "1.2.3"));
+    // Invalid semver input is treated as non-upgrade
+    assert!(!version_newer("1.2.3.4.5.6.7.8.9", "1.2.3"));
 }
 
 #[cfg(not(target_os = "windows"))]

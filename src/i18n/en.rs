@@ -63,6 +63,7 @@ pub(super) static EN: T = T {
     alert_empty_append: "Append target cannot be empty.",
     alert_empty_template: "Filename template cannot be empty.",
     alert_invalid_hotkey: "Invalid hotkey",
+    alert_invalid_path: "Invalid path: {msg}",
     alert_save_failed: "Save failed",
     alert_no_vaults: "No vaults found",
     alert_no_vaults_body: "Launch Obsidian at least once so it registers vault paths.",
