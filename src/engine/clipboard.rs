@@ -8,20 +8,6 @@ pub enum Content {
     Image { data: Vec<u8>, ext: &'static str },
 }
 
-fn run_bytes(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
-    let out = std::process::Command::new(cmd)
-        .args(args)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())?;
-
-    if !out.stdout.is_empty() {
-        Some(out.stdout)
-    } else {
-        None
-    }
-}
-
 fn run_bytes_timeout(cmd: &str, args: &[&str]) -> Option<Vec<u8>> {
     std::process::Command::new(cmd)
         .args(args)
@@ -37,12 +23,6 @@ fn run_text_timeout(cmd: &str, args: &[&str]) -> Option<String> {
         let s = String::from_utf8_lossy(&bytes).into_owned();
         if s.is_empty() { None } else { Some(s) }
     })
-}
-
-fn run_text(cmd: &str, args: &[&str]) -> Option<String> {
-    let bytes = run_bytes(cmd, args)?;
-    let s = String::from_utf8_lossy(&bytes).into_owned();
-    if s.is_empty() { None } else { Some(s) }
 }
 
 fn read_arboard() -> Option<Content> {
@@ -150,7 +130,7 @@ mod platform {
         if primary {
             args.push("--primary");
         }
-        run_text("wl-paste", &args).map(Content::Text)
+        run_text_timeout("wl-paste", &args).map(Content::Text)
     }
 
     fn read_xclip(primary: bool) -> Option<Content> {
@@ -160,7 +140,7 @@ mod platform {
                 return Some(Content::Image { data, ext });
             }
         }
-        run_text("xclip", &["-selection", sel, "-o"]).map(Content::Text)
+        run_text_timeout("xclip", &["-selection", sel, "-o"]).map(Content::Text)
     }
 
     fn read_any(primary: bool) -> Option<Content> {
@@ -198,16 +178,6 @@ mod platform {
     use crate::i18n;
     use std::time::Duration;
 
-    /// Check if Accessibility permission is granted for System Events.
-    fn check_accessibility_permission() -> bool {
-        let script = r#"tell application "System Events" to keystroke "a""#;
-        std::process::Command::new("osascript")
-            .args(["-e", script])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-    }
-
     fn copy_selection_to_clipboard_via_cmd_c() -> bool {
         // Best-effort: ask the focused app to copy the current selection into the system clipboard.
         // Requires the user's Accessibility permissions for System Events.
@@ -227,13 +197,8 @@ mod platform {
         // before this would return whatever was there last time (e.g. after a previous save),
         // so the hotkey would ignore the new selection while non-empty stale data remained.
         
-        // First check if we have accessibility permission
-        if !check_accessibility_permission() {
-            tracing::warn!("Accessibility permission not granted for selection copy");
-            // Return specific error so UI can show notification
-            bail!("{}", i18n::err_accessibility_permission());
-        }
-
+        // Try to copy selection via Cmd+C (requires Accessibility permission).
+        // If it fails (no permission or no selection), we'll read whatever is currently in the clipboard.
         let cmd_c_ok = copy_selection_to_clipboard_via_cmd_c();
 
         if !cmd_c_ok {

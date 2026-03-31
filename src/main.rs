@@ -54,7 +54,7 @@ fn main() -> Result<()> {
         }
         Commands::SettingsGui => {
             #[cfg(target_os = "macos")]
-            macos::run_blocking();
+            let _ = macos::run_blocking();
             #[cfg(target_os = "linux")]
             gtk::open();
 

@@ -50,7 +50,6 @@ pub(super) static EN: T = T {
 
     err_nothing_to_save_selection: "Nothing to save — select text or copy something first.",
     err_nothing_to_save: "Nothing to save — copy something first.",
-    err_accessibility_permission: "Accessibility permission required. Please grant access in System Settings > Privacy & Security > Accessibility, then try again.",
     err_text_empty: "Nothing to save (text is empty).",
     err_image_empty: "Nothing to save (image data is empty).",
     err_vault_path_empty: "Vault path is not set. Open Settings or edit config: {path}",

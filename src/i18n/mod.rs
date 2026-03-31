@@ -143,8 +143,6 @@ pub struct T {
     pub err_nothing_to_save_selection: &'static str,
     /// "Nothing to save — copy something first" (macOS / other)
     pub err_nothing_to_save: &'static str,
-    /// macOS accessibility permission required for selection copy
-    pub err_accessibility_permission: &'static str,
     pub err_text_empty: &'static str,
     pub err_image_empty: &'static str,
     pub err_vault_path_empty: &'static str, // {path}
@@ -220,7 +218,6 @@ tr_fns!(
     save_target_append,
     err_nothing_to_save_selection,
     err_nothing_to_save,
-    err_accessibility_permission,
     err_text_empty,
     err_image_empty,
     alert_no_config,

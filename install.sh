@@ -4,7 +4,7 @@ set -euo pipefail
 REPO="syn7xx/scoria"
 INSTALL_DIR="${HOME}/.local/bin"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 OS="$(uname -s)"
 ARCH="$(uname -m)"

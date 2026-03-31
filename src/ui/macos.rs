@@ -122,7 +122,7 @@ define_class!(
         #[unsafe(method(applicationDidFinishLaunching:))]
         fn did_finish_launching(&self, notification: &NSNotification) {
             let mtm = self.mtm();
-            let app = unsafe { notification.object() }
+            let app = notification.object()
                 .expect("notification object")
                 .downcast::<NSApplication>()
                 .expect("NSApplication");
@@ -323,7 +323,7 @@ define_class!(
     unsafe impl NSWindowDelegate for SettingsDelegate {
         #[unsafe(method(windowWillClose:))]
         fn window_will_close(&self, _notification: &NSNotification) {
-            unsafe { NSApplication::sharedApplication(self.mtm()).terminate(None) };
+            NSApplication::sharedApplication(self.mtm()).terminate(None);
         }
     }
 
@@ -456,7 +456,7 @@ define_class!(
                         show_alert(mtm, i18n::alert_invalid_hotkey(), &msg);
                     }
                     SettingsValidationError::InvalidPath(msg) => {
-                        show_alert(mtm, "Invalid path", msg);
+                        show_alert(mtm, "Invalid path", &msg);
                     }
                 },
             }
