@@ -81,33 +81,28 @@ fn save_new_file(config: &Config, text: &str) -> Result<PathBuf> {
 /// Returns error if path attempts to escape base directory.
 fn canonicalize_safe(path: &std::path::Path, base: &std::path::Path) -> Result<std::path::PathBuf> {
     use anyhow::bail;
-    
-    // For new paths, just ensure they don't contain traversal
-    if let Some(components) = path.components().next() {
-        match components {
-            std::path::Component::Normal(_) => {}
-            std::path::Component::ParentDir => {
-                bail!("path contains parent directory reference (..)");
-            }
-            _ => {}
+
+    // Check for path traversal in any path (new or existing)
+    for component in path.components() {
+        if component == std::path::Component::ParentDir {
+            bail!("path contains parent directory reference (..)");
         }
     }
-    
-    // Try to canonicalize existing paths
+
+    // For existing paths, verify canonical path is within vault
     if path.exists() {
         let canonical = std::fs::canonicalize(path)
             .with_context(|| format!("canonicalize {}", path.display()))?;
-        
-        // Verify canonical path is within vault
+
         let base_canonical = std::fs::canonicalize(base)
             .with_context(|| format!("canonicalize base {}", base.display()))?;
-        
+
         if !canonical.starts_with(&base_canonical) {
             bail!("path escapes vault directory");
         }
         return Ok(canonical);
     }
-    
+
     Ok(path.to_path_buf())
 }
 

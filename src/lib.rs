@@ -17,13 +17,13 @@ pub mod ui;
 /// Initialize tracing (logging) subsystem.
 /// Format: [scoria] timestamp level target: message
 pub fn init_logging() {
-    use tracing_subscriber::{fmt, EnvFilter};
+    use tracing_subscriber::EnvFilter;
 
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info,scoria=debug"));
 
     // Use default format with target for better debugging
-    fmt()
+    tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(true)
         .with_thread_ids(false)
