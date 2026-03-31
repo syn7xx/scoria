@@ -42,7 +42,7 @@ enum Commands {
 fn attach_to_parent_console() {
     type BOOL = i32;
     type DWORD = u32;
-    #[link(name = "kernel32", kind = "system")]
+    #[link(name = "kernel32")]
     extern "system" {
         fn AttachConsole(dw_process_id: DWORD) -> BOOL;
     }

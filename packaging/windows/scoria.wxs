@@ -23,7 +23,9 @@
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="Scoria" />
       </Directory>
-      <!-- Shortcuts: never nest CommonPrograms/CommonDesktop under TARGETDIR (MSI resolves to ROOTDRIVE). -->
+      <!-- Standard shell folder ids (no Name): required so Light resolves DirectoryRef; do not nest a custom subfolder here. -->
+      <Directory Id="CommonProgramsFolder" />
+      <Directory Id="CommonDesktopFolder" />
     </Directory>
 
     <DirectoryRef Id="INSTALLFOLDER">
