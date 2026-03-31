@@ -55,6 +55,7 @@ winrt-notification = "0.5.1"
 
 [build-dependencies]
 icns = "0.4"
+winres = "0.1"
 
 [dev-dependencies]
 tempfile = "3"

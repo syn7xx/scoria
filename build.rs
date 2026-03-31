@@ -1,4 +1,5 @@
 //! Build `assets/macos/Resources/scoria.icns` from `assets/macos/scoria.iconset/*.png`.
+//! On Windows targets: embed manifest (Common Controls 6) and icon for `scoria.exe`.
 
 use icns::{IconFamily, IconType, Image};
 use std::fs::File;
@@ -8,11 +9,49 @@ use std::process;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=packaging/windows/app.manifest");
+    println!("cargo:rerun-if-changed=packaging/windows/scoria.ico");
 
     if let Err(e) = try_build_icns() {
         eprintln!("build.rs: {e}");
         process::exit(1);
     }
+
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        if let Err(e) = embed_windows_resources() {
+            eprintln!("build.rs (windows): {e}");
+            process::exit(1);
+        }
+    }
+}
+
+fn embed_windows_resources() -> io::Result<()> {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let manifest = manifest_dir.join("packaging/windows/app.manifest");
+    let icon = manifest_dir.join("packaging/windows/scoria.ico");
+    if !manifest.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("missing {}", manifest.display()),
+        ));
+    }
+    if !icon.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("missing {}", icon.display()),
+        ));
+    }
+
+    let mut res = winres::WindowsResource::new();
+    let manifest_s = manifest
+        .to_str()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "manifest path is not UTF-8"))?;
+    let icon_s = icon
+        .to_str()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "icon path is not UTF-8"))?;
+    res.set_manifest_file(manifest_s);
+    res.set_icon(icon_s);
+    res.compile().map_err(|e| io::Error::other(format!("{e}")))
 }
 
 fn try_build_icns() -> io::Result<()> {

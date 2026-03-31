@@ -48,7 +48,9 @@
           Name="Scoria"
           Description="Save clipboard to Obsidian vault"
           Target="[INSTALLFOLDER]scoria.exe"
-          WorkingDirectory="INSTALLFOLDER" />
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="ScoriaProductIcon"
+          Advertise="no" />
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
         <RegistryValue
           Root="HKLM"
@@ -67,7 +69,9 @@
           Name="Scoria"
           Description="Save clipboard to Obsidian vault"
           Target="[INSTALLFOLDER]scoria.exe"
-          WorkingDirectory="INSTALLFOLDER" />
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="ScoriaProductIcon"
+          Advertise="no" />
         <RegistryValue
           Root="HKLM"
           Key="Software\syn7xx\Scoria"
@@ -81,8 +85,6 @@
     <Feature Id="MainFeature" Title="Scoria" Level="1">
       <ComponentRef Id="ScoriaExeComponent" />
       <ComponentRef Id="StartMenuShortcutComponent" />
-    </Feature>
-    <Feature Id="DesktopShortcutFeature" Title="Desktop shortcut" Level="2">
       <ComponentRef Id="DesktopShortcutComponent" />
     </Feature>
   </Product>
