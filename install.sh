@@ -57,6 +57,8 @@ fetch_latest_tag() {
 install_linux_desktop() {
   local scoria_bin="$1"
   local script_dir="$2"
+  local repo="$3"
+  local tag="$4"
 
   # Walker/Omarchy list applications from XDG desktop entries, not just binaries in $PATH.
   local xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -64,13 +66,39 @@ install_linux_desktop() {
 
   local app_desktop_dir="${xdg_data_home}/applications"
   local app_desktop="${app_desktop_dir}/scoria.desktop"
-  local icon_dir="${xdg_icon_home}/hicolor/scalable/apps"
+  local icon_dir_svg="${xdg_icon_home}/hicolor/scalable/apps"
+  local icon_dir_png="${xdg_icon_home}/hicolor/128x128/apps"
+  local icon_file=""
 
-  mkdir -p "$app_desktop_dir" "$icon_dir"
+  mkdir -p "$app_desktop_dir" "$icon_dir_svg" "$icon_dir_png"
 
-  # Optional: icon is nice-to-have; if missing, desktop entry still works.
+  # Prefer a concrete icon path so KDE launcher can always resolve it.
+  # First try local assets (repo checkout), then fall back to GitHub raw files.
   if [ -f "${script_dir}/assets/scoria.svg" ]; then
-    cp -f "${script_dir}/assets/scoria.svg" "${icon_dir}/scoria.svg"
+    cp -f "${script_dir}/assets/scoria.svg" "${icon_dir_svg}/scoria.svg"
+    icon_file="${icon_dir_svg}/scoria.svg"
+  fi
+  if [ -f "${script_dir}/assets/scoria-128.png" ]; then
+    cp -f "${script_dir}/assets/scoria-128.png" "${icon_dir_png}/scoria.png"
+    icon_file="${icon_dir_png}/scoria.png"
+  fi
+  if [ -z "$icon_file" ]; then
+    if curl -sLf "https://raw.githubusercontent.com/${repo}/${tag}/assets/scoria-128.png" \
+      -o "${icon_dir_png}/scoria.png"; then
+      icon_file="${icon_dir_png}/scoria.png"
+    elif curl -sLf "https://raw.githubusercontent.com/${repo}/main/assets/scoria-128.png" \
+      -o "${icon_dir_png}/scoria.png"; then
+      icon_file="${icon_dir_png}/scoria.png"
+    elif curl -sLf "https://raw.githubusercontent.com/${repo}/${tag}/assets/scoria.svg" \
+      -o "${icon_dir_svg}/scoria.svg"; then
+      icon_file="${icon_dir_svg}/scoria.svg"
+    elif curl -sLf "https://raw.githubusercontent.com/${repo}/main/assets/scoria.svg" \
+      -o "${icon_dir_svg}/scoria.svg"; then
+      icon_file="${icon_dir_svg}/scoria.svg"
+    fi
+  fi
+  if [ -z "$icon_file" ]; then
+    icon_file="scoria"
   fi
 
   cat > "$app_desktop" <<EOF
@@ -79,7 +107,7 @@ Type=Application
 Name=Scoria
 Comment=Save clipboard to Obsidian vault
 Exec=${scoria_bin} run
-Icon=scoria
+Icon=${icon_file}
 Terminal=false
 Categories=Utility;
 StartupNotify=false
@@ -172,7 +200,7 @@ if [[ "$OS" == "Darwin" ]]; then
 EOF
   echo "Created app bundle: ${APP} (for Spotlight / Applications)."
 elif [[ "$OS" == "Linux" ]]; then
-  install_linux_desktop "$SCORIA_BIN" "$SCRIPT_DIR"
+  install_linux_desktop "$SCORIA_BIN" "$SCRIPT_DIR" "$REPO" "$LATEST"
 fi
 
 echo "Done. Run 'scoria --version' to verify."

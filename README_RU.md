@@ -47,7 +47,7 @@ irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
 Для мейнтейнеров: можно сгенерировать winget-манифесты (установщик — **портативный ZIP**) по SHA256 **архива** `scoria-windows-x86_64.zip`:
 
 ```powershell
-powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.3 -Sha256 "<sha256 scoria-windows-x86_64.zip>"
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.4 -Sha256 "<sha256 scoria-windows-x86_64.zip>"
 ```
 
 Версию укажите как в релизе (см. `version` в `Cargo.toml`). Скрипт снимает ведущий `v` у `-Version`, если он есть.

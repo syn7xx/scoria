@@ -109,7 +109,10 @@ pub fn run() -> Result<()> {
         }
 
         fn icon_name(&self) -> String {
-            "scoria".into()
+            // GNOME AppIndicator hosts may prefer themed icon names and ignore pixmap
+            // fallback when the name is missing in the current icon theme.
+            // Return an empty name to force using icon_pixmap().
+            String::new()
         }
 
         fn icon_pixmap(&self) -> Vec<ksni::Icon> {

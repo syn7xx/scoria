@@ -100,7 +100,7 @@ pub fn open() -> Result<()> {
     let mut window = nwg::Window::default();
     nwg::Window::builder()
         .size((px(760), px(760)))
-        .position((300, 200))
+        .position((px(300), px(200)))
         .title(i18n::settings_title())
         .build(&mut window)
         .context("create settings window")?;
@@ -108,15 +108,15 @@ pub fn open() -> Result<()> {
     let mut vault_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_vault())
-        .position((12, 14))
-        .size((260, 24))
+        .position((px(12), px(14)))
+        .size((px(260), px(24)))
         .parent(&window)
         .build(&mut vault_label)?;
 
     let mut vault_input = nwg::TextInput::default();
     nwg::TextInput::builder()
-        .position((12, 38))
-        .size((430, 28))
+        .position((px(12), px(38)))
+        .size((px(430), px(28)))
         .parent(&window)
         .text(&cfg.vault_path.to_string_lossy())
         .build(&mut vault_input)?;
@@ -124,31 +124,31 @@ pub fn open() -> Result<()> {
     let mut browse_btn = nwg::Button::default();
     nwg::Button::builder()
         .text(i18n::settings_browse())
-        .position((450, 38))
-        .size((84, 28))
+        .position((px(450), px(38)))
+        .size((px(84), px(28)))
         .parent(&window)
         .build(&mut browse_btn)?;
 
     let mut detect_btn = nwg::Button::default();
     nwg::Button::builder()
         .text(i18n::settings_detect())
-        .position((542, 38))
-        .size((84, 28))
+        .position((px(542), px(38)))
+        .size((px(84), px(28)))
         .parent(&window)
         .build(&mut detect_btn)?;
 
     let mut mode_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_save_mode())
-        .position((12, 76))
-        .size((260, 24))
+        .position((px(12), px(76)))
+        .size((px(260), px(24)))
         .parent(&window)
         .build(&mut mode_label)?;
 
     let mut target_combo = nwg::ComboBox::<String>::default();
     nwg::ComboBox::builder()
-        .position((12, 100))
-        .size((614, 28))
+        .position((px(12), px(100)))
+        .size((px(614), px(28)))
         .parent(&window)
         .collection(vec![
             i18n::save_target_new_file().to_string(),
@@ -160,15 +160,15 @@ pub fn open() -> Result<()> {
     let mut folder_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_folder())
-        .position((12, 138))
-        .size((260, 24))
+        .position((px(12), px(138)))
+        .size((px(260), px(24)))
         .parent(&window)
         .build(&mut folder_label)?;
 
     let mut folder_input = nwg::TextInput::default();
     nwg::TextInput::builder()
-        .position((12, 162))
-        .size((614, 28))
+        .position((px(12), px(162)))
+        .size((px(614), px(28)))
         .parent(&window)
         .text(&cfg.folder)
         .build(&mut folder_input)?;
@@ -176,15 +176,15 @@ pub fn open() -> Result<()> {
     let mut append_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_append())
-        .position((12, 200))
-        .size((260, 24))
+        .position((px(12), px(200)))
+        .size((px(260), px(24)))
         .parent(&window)
         .build(&mut append_label)?;
 
     let mut append_input = nwg::TextInput::default();
     nwg::TextInput::builder()
-        .position((12, 224))
-        .size((614, 28))
+        .position((px(12), px(224)))
+        .size((px(614), px(28)))
         .parent(&window)
         .text(&cfg.append_file)
         .build(&mut append_input)?;
@@ -192,15 +192,15 @@ pub fn open() -> Result<()> {
     let mut tpl_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_template())
-        .position((12, 262))
-        .size((300, 24))
+        .position((px(12), px(262)))
+        .size((px(300), px(24)))
         .parent(&window)
         .build(&mut tpl_label)?;
 
     let mut tpl_input = nwg::TextInput::default();
     nwg::TextInput::builder()
-        .position((12, 286))
-        .size((614, 28))
+        .position((px(12), px(286)))
+        .size((px(614), px(28)))
         .parent(&window)
         .text(&cfg.filename_template)
         .build(&mut tpl_input)?;
@@ -208,8 +208,8 @@ pub fn open() -> Result<()> {
     let mut ts_check = nwg::CheckBox::default();
     nwg::CheckBox::builder()
         .text(i18n::settings_timestamp())
-        .position((12, 322))
-        .size((614, 24))
+        .position((px(12), px(322)))
+        .size((px(614), px(24)))
         .parent(&window)
         .build(&mut ts_check)?;
     ts_check.set_check_state(checked_state(cfg.prepend_timestamp_header));
@@ -217,8 +217,8 @@ pub fn open() -> Result<()> {
     let mut autostart_check = nwg::CheckBox::default();
     nwg::CheckBox::builder()
         .text(i18n::settings_autostart())
-        .position((12, 348))
-        .size((614, 24))
+        .position((px(12), px(348)))
+        .size((px(614), px(24)))
         .parent(&window)
         .build(&mut autostart_check)?;
     autostart_check.set_check_state(checked_state(cfg.autostart));
@@ -226,8 +226,8 @@ pub fn open() -> Result<()> {
     let mut auto_update_check = nwg::CheckBox::default();
     nwg::CheckBox::builder()
         .text(i18n::settings_auto_update())
-        .position((12, 374))
-        .size((614, 24))
+        .position((px(12), px(374)))
+        .size((px(614), px(24)))
         .parent(&window)
         .build(&mut auto_update_check)?;
     auto_update_check.set_check_state(checked_state(cfg.auto_update));
@@ -235,15 +235,15 @@ pub fn open() -> Result<()> {
     let mut lang_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_lang())
-        .position((12, 404))
-        .size((260, 24))
+        .position((px(12), px(404)))
+        .size((px(260), px(24)))
         .parent(&window)
         .build(&mut lang_label)?;
 
     let mut lang_combo = nwg::ComboBox::<String>::default();
     nwg::ComboBox::builder()
-        .position((12, 428))
-        .size((614, 28))
+        .position((px(12), px(428)))
+        .size((px(614), px(28)))
         .parent(&window)
         .collection(vec!["English".to_string(), "Русский".to_string()])
         .build(&mut lang_combo)?;
@@ -252,15 +252,15 @@ pub fn open() -> Result<()> {
     let mut hotkey_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_hotkey())
-        .position((12, 466))
-        .size((300, 24))
+        .position((px(12), px(466)))
+        .size((px(300), px(24)))
         .parent(&window)
         .build(&mut hotkey_label)?;
 
     let mut hotkey_input = nwg::TextInput::default();
     nwg::TextInput::builder()
-        .position((12, 490))
-        .size((614, 28))
+        .position((px(12), px(490)))
+        .size((px(614), px(28)))
         .parent(&window)
         .text(cfg.hotkey.as_deref().unwrap_or(""))
         .build(&mut hotkey_input)?;
@@ -268,32 +268,32 @@ pub fn open() -> Result<()> {
     let mut hint_label = nwg::Label::default();
     nwg::Label::builder()
         .text(i18n::settings_hotkey_hint())
-        .position((12, 520))
-        .size((614, 24))
+        .position((px(12), px(520)))
+        .size((px(614), px(24)))
         .parent(&window)
         .build(&mut hint_label)?;
 
     let mut open_raw_btn = nwg::Button::default();
     nwg::Button::builder()
         .text(i18n::settings_raw())
-        .position((12, 550))
-        .size((150, 32))
+        .position((px(12), px(550)))
+        .size((px(150), px(32)))
         .parent(&window)
         .build(&mut open_raw_btn)?;
 
     let mut cancel_btn = nwg::Button::default();
     nwg::Button::builder()
         .text(i18n::settings_cancel())
-        .position((452, 550))
-        .size((84, 32))
+        .position((px(452), px(550)))
+        .size((px(84), px(32)))
         .parent(&window)
         .build(&mut cancel_btn)?;
 
     let mut save_btn = nwg::Button::default();
     nwg::Button::builder()
         .text(i18n::settings_save())
-        .position((542, 550))
-        .size((84, 32))
+        .position((px(542), px(550)))
+        .size((px(84), px(32)))
         .parent(&window)
         .build(&mut save_btn)?;
 

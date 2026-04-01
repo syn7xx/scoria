@@ -1,6 +1,6 @@
 [package]
 name = "scoria"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "Save clipboard content (text & images) to an Obsidian vault — system tray + CLI (Linux, macOS, Windows)"
 license = "MIT OR Apache-2.0"
