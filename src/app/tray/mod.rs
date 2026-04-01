@@ -9,12 +9,12 @@ mod notify;
 #[cfg(not(target_os = "linux"))]
 mod watch;
 
+use crate::engine::{autostart, config};
+use crate::i18n;
 #[cfg(target_os = "linux")]
 use anyhow::{Context, Result};
 #[cfg(not(target_os = "linux"))]
 use anyhow::{Context, Result};
-use crate::engine::{autostart, config};
-use crate::i18n;
 
 #[cfg(target_os = "linux")]
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -190,10 +190,12 @@ pub fn run() -> Result<()> {
         }
     })?;
 
-    let tray_handle = LinuxTray { state: state.clone() }
-        .assume_sni_available(true)
-        .spawn()
-        .context("start ksni tray service")?;
+    let tray_handle = LinuxTray {
+        state: state.clone(),
+    }
+    .assume_sni_available(true)
+    .spawn()
+    .context("start ksni tray service")?;
 
     let (hotkey_id, hk_manager) = hotkey_reg::try_register_hotkey(&cfg);
     let hotkey_id = Arc::new(AtomicU32::new(hotkey_id.unwrap_or(0)));
@@ -369,12 +371,16 @@ pub fn run() -> Result<()> {
             }
             Event::UserEvent(UserEvent::ConfigChanged) => {
                 actions::on_config_changed(&tray, &menu_items);
-                menu_items.update.set_enabled(!actions::update_check_in_progress());
-                menu_items.update.set_text(if actions::update_check_in_progress() {
-                    i18n::menu_update_checking()
-                } else {
-                    i18n::menu_update()
-                });
+                menu_items
+                    .update
+                    .set_enabled(!actions::update_check_in_progress());
+                menu_items
+                    .update
+                    .set_text(if actions::update_check_in_progress() {
+                        i18n::menu_update_checking()
+                    } else {
+                        i18n::menu_update()
+                    });
                 if let Ok(cfg) = config::load() {
                     autostart::apply(cfg.autostart);
                     let mut mgr = match hk_manager_clone.lock() {
@@ -396,12 +402,16 @@ pub fn run() -> Result<()> {
                 }
             }
             Event::UserEvent(UserEvent::UpdateStateChanged) => {
-                menu_items.update.set_enabled(!actions::update_check_in_progress());
-                menu_items.update.set_text(if actions::update_check_in_progress() {
-                    i18n::menu_update_checking()
-                } else {
-                    i18n::menu_update()
-                });
+                menu_items
+                    .update
+                    .set_enabled(!actions::update_check_in_progress());
+                menu_items
+                    .update
+                    .set_text(if actions::update_check_in_progress() {
+                        i18n::menu_update_checking()
+                    } else {
+                        i18n::menu_update()
+                    });
             }
             Event::UserEvent(UserEvent::Shutdown) => {
                 tracing::info!("shutdown event received, exiting");

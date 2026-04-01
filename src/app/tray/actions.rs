@@ -119,22 +119,20 @@ where
             };
             let tag = match update::cached_tag() {
                 Some(cached) => cached.clone(),
-                None => {
-                    match update::check() {
-                        update::CheckResult::UpdateAvailable(tag) => tag,
-                        update::CheckResult::UpToDate => {
-                            let ver = update::current_version();
-                            notify(i18n::notif_up_to_date(), &i18n::notif_up_to_date_body(ver));
-                            finish();
-                            return;
-                        }
-                        update::CheckResult::Unreachable => {
-                            notify(i18n::notif_update_failed(), i18n::notif_unreachable());
-                            finish();
-                            return;
-                        }
+                None => match update::check() {
+                    update::CheckResult::UpdateAvailable(tag) => tag,
+                    update::CheckResult::UpToDate => {
+                        let ver = update::current_version();
+                        notify(i18n::notif_up_to_date(), &i18n::notif_up_to_date_body(ver));
+                        finish();
+                        return;
                     }
-                }
+                    update::CheckResult::Unreachable => {
+                        notify(i18n::notif_update_failed(), i18n::notif_unreachable());
+                        finish();
+                        return;
+                    }
+                },
             };
 
             tracing::info!(tag = %tag, "manual update required on Windows");
@@ -156,10 +154,9 @@ where
                 UPDATE_CHECK_IN_PROGRESS.store(false, Ordering::SeqCst);
                 on_state_change_done();
             };
-        let tag = match update::cached_tag() {
-            Some(cached) => cached.clone(),
-            None => {
-                match update::check() {
+            let tag = match update::cached_tag() {
+                Some(cached) => cached.clone(),
+                None => match update::check() {
                     update::CheckResult::UpdateAvailable(tag) => tag,
                     update::CheckResult::UpToDate => {
                         let ver = update::current_version();
@@ -173,22 +170,21 @@ where
                         finish();
                         return;
                     }
+                },
+            };
+
+            match update::apply(&tag) {
+                Ok(()) => {
+                    tracing::info!(tag = %tag, "update applied");
+                    notify(i18n::notif_updated(), &i18n::notif_updated_body(&tag));
+                }
+                Err(e) => {
+                    let msg = format!("{e:#}");
+
+                    tracing::error!(error = %msg, "update failed");
+                    notify(i18n::notif_update_failed(), &msg);
                 }
             }
-        };
-
-        match update::apply(&tag) {
-            Ok(()) => {
-                tracing::info!(tag = %tag, "update applied");
-                notify(i18n::notif_updated(), &i18n::notif_updated_body(&tag));
-            }
-            Err(e) => {
-                let msg = format!("{e:#}");
-
-                tracing::error!(error = %msg, "update failed");
-                notify(i18n::notif_update_failed(), &msg);
-            }
-        }
             finish();
         });
     }
