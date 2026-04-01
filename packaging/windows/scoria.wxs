@@ -23,9 +23,11 @@
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="Scoria" />
       </Directory>
-      <!-- Standard shell folder ids (no Name): required so Light resolves DirectoryRef; do not nest a custom subfolder here. -->
-      <Directory Id="CommonProgramsFolder" />
-      <Directory Id="CommonDesktopFolder" />
+      <!-- Standard shell folder ids (no Name): required so Light resolves DirectoryRef. -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ProgramMenuScoriaFolder" Name="Scoria" />
+      </Directory>
+      <Directory Id="DesktopFolder" />
     </Directory>
 
     <DirectoryRef Id="INSTALLFOLDER">
@@ -41,7 +43,7 @@
       </Component>
     </DirectoryRef>
 
-    <DirectoryRef Id="CommonProgramsFolder">
+    <DirectoryRef Id="ProgramMenuScoriaFolder">
       <Component Id="StartMenuShortcutComponent" Guid="BA094A84-14DC-4A20-8785-F3374B5B8F62" Win64="yes">
         <Shortcut
           Id="StartMenuShortcut"
@@ -53,6 +55,7 @@
           Advertise="no">
           <ShortcutProperty Key="System.AppUserModel.ID" Value="syn7xx.Scoria" />
         </Shortcut>
+        <RemoveFolder Id="ProgramMenuScoriaFolder" On="uninstall" />
         <RegistryValue
           Root="HKLM"
           Key="Software\syn7xx\Scoria"
@@ -63,7 +66,7 @@
       </Component>
     </DirectoryRef>
 
-    <DirectoryRef Id="CommonDesktopFolder">
+    <DirectoryRef Id="DesktopFolder">
       <Component Id="DesktopShortcutComponent" Guid="E0AD5B29-DA42-4D80-BF7A-A4FF0B7075B0" Win64="yes">
         <Condition><![CDATA[CREATE_DESKTOP_SHORTCUT="1"]]></Condition>
         <Shortcut
