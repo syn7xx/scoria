@@ -313,8 +313,9 @@ pub fn run() -> Result<()> {
         }
     }));
 
+    let hotkey_proxy = proxy.clone();
     GlobalHotKeyEvent::set_event_handler(Some(move |e| {
-        let _ = proxy.send_event(UserEvent::HotKey(e));
+        let _ = hotkey_proxy.send_event(UserEvent::HotKey(e));
     }));
 
     let (menu, menu_items) = menu::MenuItems::build()?;
