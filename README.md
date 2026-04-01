@@ -20,6 +20,8 @@ make install   # builds and installs to ~/.local/bin (+ icons & .desktop entry o
 
 Make sure `~/.local/bin` is in your `PATH`.
 
+On Linux, `make install` also installs the app icon under `~/.local/share/icons/hicolor/...` and `assets/scoria.desktop` into `~/.local/share/applications/` so launchers (KDE, GNOME, etc.) can show Scoria with an icon.
+
 ### Pre-built binary (recommended)
 
 Linux/macOS one-command install or update:
@@ -28,12 +30,14 @@ Linux/macOS one-command install or update:
 curl -sL https://github.com/syn7xx/scoria/raw/main/install.sh | bash
 ```
 
+The Linux path of `install.sh` downloads the release binary, writes `~/.local/share/applications/scoria.desktop`, and installs icons into `~/.local/share/icons/hicolor/` (PNG and/or SVG). The `.desktop` file uses an **absolute `Icon=` path** when possible so KDE Application Launcher and similar pick up the icon even if the themed icon name `scoria` is not installed system-wide.
+
 Or download manually from the [Releases](https://github.com/syn7xx/scoria/releases) page.
 
 #### Windows
 
 Use the `scoria-windows-x86_64.msi` asset from [Releases](https://github.com/syn7xx/scoria/releases) for the easiest install.
-The wizard asks for an installation folder and whether to add a **desktop** shortcut; a **Start menu** shortcut is always installed. There is no separate license step.
+The wizard asks for an installation folder, then a page with a **desktop shortcut** checkbox, then the summary. After install, the finish screen can offer **Launch Scoria now**. **Start menu** and optional **desktop** shortcuts use the standard per-user shell folders (so they appear correctly even if you install to a non-system drive). There is no separate license step.
 
 Portable option: use `scoria-windows-x86_64.zip`, extract `scoria.exe`, and add its folder to `PATH`.
 `install.sh` / `uninstall.sh` are Unix-only.
@@ -64,13 +68,17 @@ This installs only the binary. On Linux you'll need system libraries installed f
 
 #### Linux
 
+Build-time and runtime libraries (GTK is used for **Settings**; the tray uses **StatusNotifierItem** via D-Bus, not `libappindicator`):
+
 | Distro | Command |
 |--------|---------|
-| **Arch / Omarchy** | `sudo pacman -S --needed gtk3 libappindicator-gtk3 xdotool wl-clipboard` |
-| **Fedora** | `sudo dnf install gtk3-devel libappindicator-gtk3-devel xdotool wl-clipboard` |
-| **Ubuntu / Debian** | `sudo apt install libgtk-3-dev libappindicator3-dev libxdo-dev xdotool wl-clipboard` |
+| **Arch / Omarchy** | `sudo pacman -S --needed base-devel rust gtk3 xdotool wl-clipboard` |
+| **Fedora** | `sudo dnf install gcc make rust cargo gtk3-devel xdotool wl-clipboard` |
+| **Ubuntu / Debian** | `sudo apt install build-essential rustc cargo libgtk-3-dev libxdo-dev xdotool wl-clipboard` |
 
-> **GNOME**: the tray icon requires the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension (package `gnome-shell-extension-appindicator`). Without it `scoria save` still works via a keyboard shortcut.
+> **GNOME**: for the tray entry to appear in the top bar, the [AppIndicator](https://extensions.gnome.org/extension/615/appindicator-support/) extension (`gnome-shell-extension-appindicator`) is usually required. Without it, `scoria save` and `scoria settings-gui` still work; only tray integration may be missing.
+
+> **Linux tray icon**: The tray uses the StatusNotifierItem protocol with an embedded **pixmap** icon so KDE, Hyprland, and other SNI hosts show the app icon reliably (including cases where a themed icon name would not resolve).
 
 #### macOS
 
@@ -119,13 +127,13 @@ On macOS you can also open the same settings window from a terminal (starts a sh
 scoria settings-gui
 ```
 
-On Linux (including GNOME without AppIndicator) you can open the GTK settings from a terminal:
+On Linux you can open the GTK settings from a terminal (works even when the tray is not visible):
 
 ```bash
 scoria settings-gui
 ```
 
-On Windows, `scoria settings-gui` opens the native settings window. Starting the tray from the Start menu or autostart does **not** open a console window.
+On Windows, `scoria settings-gui` opens the native settings window; layout and font scale with **display DPI** (e.g. 150%). Starting the tray from the Start menu or autostart does **not** open a console window.
 
 To edit the raw TOML instead, use **Open config file…** in the tray menu.
 
@@ -146,7 +154,7 @@ Labels follow your [interface language](#interface-language) setting (defaults t
 | **Save to Obsidian** | Save selected text or clipboard content |
 | **Settings…** | GTK settings dialog (Linux) / native AppKit window (macOS) / native Win32 window (Windows) |
 | **Open config file…** | Open config in your default editor |
-| **Check for updates** | Linux/macOS: download and install the latest version; Windows: show an update notice and open the latest Releases page for manual MSI/winget update |
+| **Check for updates** / **Checking for updates…** | While a check runs, the menu shows a disabled “checking” label. Linux/macOS: download and install the latest version when an update exists; Windows: notification and open the latest Releases page for MSI/winget |
 | **Quit** | Exit |
 
 ### What gets saved
@@ -208,14 +216,14 @@ Edit via **Settings…** in the tray menu, or directly in the config file.
 | `hotkey` | *(none)* | Global shortcut (X11 and Windows tray mode) |
 | `autostart` | `false` | Start Scoria on login |
 | `auto_update` | `false` | Automatically check for updates on tray startup |
-| `language` | *(empty)* | UI language: empty string = auto from `LANG` / `LC_MESSAGES` / `LC_ALL`, or `en`, `ru` |
+| `language` | *(empty)* | UI language: empty = auto-detect **English** or **Russian** from the OS (`LANG` / `LC_*`, and on Windows the UI locale); or set `en` / `ru` explicitly |
 
 ### Interface language
 
 Scoria ships with **English** and **Russian** UI strings (tray menu, notifications, settings dialogs).
 
-- In **Settings…**, use **Interface language**: *Auto* (follows your OS locale), *English*, or *Русский*. Saving applies the language immediately in that window; the tray app updates menu text and tooltip shortly after (it watches `config.toml`).
-- In the config file, set `language = ""` for auto, `language = "en"`, or `language = "ru"`.
+- In **Settings…**, choose **English** or **Русский**. If `language` in the config is empty, the settings dialog opens with the locale Scoria inferred from the system.
+- In the config file, `language = ""` enables automatic detection; `language = "en"` or `language = "ru"` pins the UI language.
 
 ### Autostart
 
@@ -249,6 +257,8 @@ make check    # cargo clippy
 make fmt      # cargo fmt
 make clean    # cargo clean
 ```
+
+CI runs `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo test --locked`.
 
 ## Contributing
 

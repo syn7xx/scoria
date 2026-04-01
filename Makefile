@@ -15,13 +15,13 @@ build:
 ifeq ($(UNAME),Linux)
 deps:
 	@if command -v pacman >/dev/null 2>&1; then \
-		sudo pacman -S --needed base-devel rust gtk3 libappindicator-gtk3 xdotool wl-clipboard; \
+		sudo pacman -S --needed base-devel rust gtk3 xdotool wl-clipboard; \
 	elif command -v dnf >/dev/null 2>&1; then \
-		sudo dnf install -y gcc make rust cargo gtk3-devel libappindicator-gtk3-devel xdotool wl-clipboard; \
+		sudo dnf install -y gcc make rust cargo gtk3-devel xdotool wl-clipboard; \
 	elif command -v apt-get >/dev/null 2>&1; then \
-		sudo apt-get install -y build-essential rustc cargo libgtk-3-dev libappindicator3-dev libxdo-dev xdotool wl-clipboard; \
+		sudo apt-get install -y build-essential rustc cargo libgtk-3-dev libxdo-dev xdotool wl-clipboard; \
 	else \
-		echo "Unknown package manager. Install manually: rust, gtk3-devel, libappindicator-gtk3-devel, xdotool, wl-clipboard"; \
+		echo "Unknown package manager. Install manually: rust, gtk3-devel, xdotool, wl-clipboard"; \
 	fi
 else ifeq ($(UNAME),Darwin)
 deps:
