@@ -60,6 +60,22 @@ fn idx_to_language(idx: Option<usize>) -> String {
     }
 }
 
+/// 96 DPI layout for the fixed control positions below (single source of truth for window client size).
+mod settings_layout {
+    pub const MARGIN_X: i32 = 12;
+    pub const MARGIN_BOTTOM: i32 = 16;
+    /// Full-width rows (combos, text inputs, checkboxes).
+    pub const FIELD_WIDTH: i32 = 614;
+    /// Lowest row of controls (Save / Cancel / Open raw).
+    pub const BOTTOM_ROW_Y: i32 = 550;
+    pub const BOTTOM_ROW_H: i32 = 32;
+}
+
+const SETTINGS_CLIENT_W_BASE: i32 =
+    settings_layout::MARGIN_X + settings_layout::FIELD_WIDTH + settings_layout::MARGIN_X;
+const SETTINGS_CLIENT_H_BASE: i32 =
+    settings_layout::BOTTOM_ROW_Y + settings_layout::BOTTOM_ROW_H + settings_layout::MARGIN_BOTTOM;
+
 fn show_validation_error(window: &nwg::Window, error: SettingsValidationError) {
     match error {
         SettingsValidationError::EmptySubfolder => {
@@ -99,7 +115,10 @@ pub fn open() -> Result<()> {
 
     let mut window = nwg::Window::default();
     nwg::Window::builder()
-        .size((px(760), px(760)))
+        .flags(
+            nwg::WindowFlags::WINDOW | nwg::WindowFlags::MINIMIZE_BOX | nwg::WindowFlags::VISIBLE,
+        )
+        .size((px(SETTINGS_CLIENT_W_BASE), px(SETTINGS_CLIENT_H_BASE)))
         .position((px(300), px(200)))
         .title(i18n::settings_title())
         .build(&mut window)
