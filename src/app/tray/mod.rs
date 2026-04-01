@@ -12,7 +12,7 @@ mod watch;
 #[cfg(target_os = "linux")]
 use anyhow::{Context, Result};
 #[cfg(not(target_os = "linux"))]
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crate::engine::{autostart, config};
 use crate::i18n;
 

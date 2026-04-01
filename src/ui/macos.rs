@@ -126,7 +126,7 @@ define_class!(
                 show_alert(mtm, i18n::alert_invalid(), "missing application notification object");
                 return;
             };
-            let Some(app) = object.downcast::<NSApplication>() else {
+            let Ok(app) = object.downcast::<NSApplication>() else {
                 show_alert(mtm, i18n::alert_invalid(), "invalid application notification object");
                 return;
             };
