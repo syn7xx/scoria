@@ -12,8 +12,8 @@
     <Property Id="ARPPRODUCTICON" Value="ScoriaProductIcon" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <Property Id="CREATE_DESKTOP_SHORTCUT" Value="1" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Scoria now" />
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <!-- Own property: WixUI ExitDialog already binds WIXUI_EXITDIALOGOPTIONALCHECKBOX (LGHT0091 if duplicated). -->
+    <Property Id="LAUNCH_SCORIA_NOW" Value="1" />
     <CustomAction
       Id="LaunchScoriaAfterInstall"
       FileKey="ScoriaExeFile"
@@ -115,9 +115,7 @@
 
       <Dialog Id="ScoriaExitDlg" Width="370" Height="270" Title="!(loc.ExitDialog_Title)">
         <Control Id="Finish" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Cancel="yes" Text="!(loc.WixUIFinish)">
-          <Publish Event="DoAction" Value="LaunchScoriaAfterInstall" Order="1">
-            WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
-          </Publish>
+          <Publish Event="DoAction" Value="LaunchScoriaAfterInstall" Order="1">LAUNCH_SCORIA_NOW = 1 AND NOT Installed</Publish>
           <Publish Event="DoAction" Value="CreateDesktopShortcutCA" Order="2">CREATE_DESKTOP_SHORTCUT = 1 AND NOT Installed</Publish>
           <Publish Event="EndDialog" Value="Return" Order="999">1</Publish>
         </Control>
@@ -140,17 +138,17 @@
           <Condition Action="show">WIXUI_EXITDIALOGOPTIONALTEXT AND NOT Installed</Condition>
         </Control>
         <Control
-          Id="OptionalCheckBox"
+          Id="LaunchCheckBox"
           Type="CheckBox"
           X="135"
           Y="165"
           Width="220"
           Height="22"
           Hidden="yes"
-          Property="WIXUI_EXITDIALOGOPTIONALCHECKBOX"
+          Property="LAUNCH_SCORIA_NOW"
           CheckBoxValue="1"
-          Text="[WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT]">
-          <Condition Action="show">WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT AND NOT Installed</Condition>
+          Text="Launch Scoria now">
+          <Condition Action="show">NOT Installed</Condition>
         </Control>
         <Control
           Id="DesktopShortcutCheck"
