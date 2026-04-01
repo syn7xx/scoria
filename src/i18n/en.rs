@@ -5,6 +5,7 @@ pub(super) static EN: T = T {
     menu_settings: "Settings…",
     menu_config: "Open config file…",
     menu_update: "Check for updates",
+    menu_update_checking: "Checking for updates…",
     menu_quit: "Quit",
     tooltip: "Scoria — clipboard → Obsidian",
 

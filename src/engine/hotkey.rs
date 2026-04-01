@@ -22,7 +22,7 @@ fn split_spec(spec: &str) -> anyhow::Result<(Vec<String>, String)> {
         .collect();
 
     anyhow::ensure!(!parts.is_empty(), "empty hotkey");
-    let key = parts.last().expect("non-empty: guarded above").to_string();
+    let key = parts[parts.len() - 1].to_string();
     let mods = parts[..parts.len() - 1]
         .iter()
         .map(|s| s.to_string())
@@ -48,7 +48,9 @@ fn parse_modifiers(parts: &[String]) -> anyhow::Result<Modifiers> {
 fn friendly_code(s: &str) -> anyhow::Result<Code> {
     let s = s.trim();
     if s.len() == 1 {
-        let c = s.chars().next().unwrap();
+        let Some(c) = s.chars().next() else {
+            anyhow::bail!("empty key");
+        };
         if c.is_ascii_alphabetic() {
             let name = format!("Key{}", c.to_ascii_uppercase());
             return Code::from_str(&name).map_err(|e| anyhow::anyhow!("{e}"));

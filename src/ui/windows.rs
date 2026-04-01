@@ -35,17 +35,19 @@ fn idx_to_target(idx: Option<usize>) -> SaveTarget {
 
 fn language_to_idx(language: &str) -> usize {
     match language {
-        "en" => 1,
-        "ru" => 2,
-        _ => 0,
+        "ru" => 1,
+        "en" => 0,
+        _ => match i18n::current() {
+            i18n::Lang::Ru => 1,
+            i18n::Lang::En => 0,
+        },
     }
 }
 
 fn idx_to_language(idx: Option<usize>) -> String {
     match idx {
-        Some(1) => "en".to_string(),
-        Some(2) => "ru".to_string(),
-        _ => String::new(),
+        Some(1) => "ru".to_string(),
+        _ => "en".to_string(),
     }
 }
 
@@ -231,11 +233,7 @@ pub fn open() -> Result<()> {
         .position((12, 428))
         .size((614, 28))
         .parent(&window)
-        .collection(vec![
-            "Auto / Авто".to_string(),
-            "English".to_string(),
-            "Русский".to_string(),
-        ])
+        .collection(vec!["English".to_string(), "Русский".to_string()])
         .build(&mut lang_combo)?;
     lang_combo.set_selection(Some(language_to_idx(&cfg.language)));
 

@@ -1,12 +1,12 @@
 use super::*;
 
 #[test]
-fn choose_content_prefers_pb_text_over_arboard_text() {
+fn choose_content_prefers_arboard_text_over_pb_text() {
     let ar = Some(Content::Text("from-arboard".into()));
     let pb = Some("from-pb".into());
-    let got = choose_clipboard_content(ar, pb).expect("pb text should win over arboard text");
+    let got = choose_clipboard_content(ar, pb).expect("arboard text should win over pb text");
     match got {
-        Content::Text(s) => assert_eq!(s, "from-pb"),
+        Content::Text(s) => assert_eq!(s, "from-arboard"),
         Content::Image { .. } => panic!("expected text"),
     }
 }

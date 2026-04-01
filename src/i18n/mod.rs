@@ -22,6 +22,23 @@ use ru::RU;
 // settings), so language changes take effect immediately without restarting.
 static LANG: RwLock<Option<Lang>> = RwLock::new(None);
 
+fn set_lang(lang: Lang) {
+    match LANG.write() {
+        Ok(mut guard) => *guard = Some(lang),
+        Err(poisoned) => {
+            // Keep localization available even if a previous panic poisoned the lock.
+            *poisoned.into_inner() = Some(lang);
+        }
+    }
+}
+
+fn get_lang() -> Option<Lang> {
+    match LANG.read() {
+        Ok(guard) => *guard,
+        Err(poisoned) => *poisoned.into_inner(),
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Lang {
     En,
@@ -37,17 +54,17 @@ pub fn apply(setting: &str) {
     } else {
         parse(setting)
     };
-    *LANG.write().unwrap() = Some(lang);
+    set_lang(lang);
 }
 
 /// Current language. Auto-detects from system locale on first call if
 /// [`apply`] has not been called yet.
 pub fn current() -> Lang {
-    if let Some(lang) = *LANG.read().unwrap() {
+    if let Some(lang) = get_lang() {
         return lang;
     }
     let lang = detect();
-    *LANG.write().unwrap() = Some(lang);
+    set_lang(lang);
     lang
 }
 
@@ -67,7 +84,29 @@ fn detect() -> Lang {
             }
         }
     }
+    #[cfg(target_os = "windows")]
+    if let Some(lang) = detect_windows_ui_lang() {
+        return lang;
+    }
     Lang::En
+}
+
+#[cfg(target_os = "windows")]
+fn detect_windows_ui_lang() -> Option<Lang> {
+    // Use system UI locale when LANG/LC_* are not set (common on Windows).
+    const LOCALE_NAME_MAX_LENGTH: i32 = 85;
+    unsafe extern "system" {
+        fn GetUserDefaultLocaleName(locale_name: *mut u16, cch_locale_name: i32) -> i32;
+    }
+
+    let mut buf = [0u16; LOCALE_NAME_MAX_LENGTH as usize];
+    let written = unsafe { GetUserDefaultLocaleName(buf.as_mut_ptr(), LOCALE_NAME_MAX_LENGTH) };
+    if written <= 1 {
+        return None;
+    }
+    let len = (written - 1) as usize;
+    let locale = String::from_utf16_lossy(&buf[..len]);
+    Some(parse(&locale))
 }
 
 /// Returns the active translation table.
@@ -92,6 +131,7 @@ pub struct T {
     pub menu_settings: &'static str,
     pub menu_config: &'static str,
     pub menu_update: &'static str,
+    pub menu_update_checking: &'static str,
     pub menu_quit: &'static str,
     pub tooltip: &'static str,
 
@@ -184,6 +224,7 @@ tr_fns!(
     menu_settings,
     menu_config,
     menu_update,
+    menu_update_checking,
     menu_quit,
     tooltip,
     notif_saved_title,

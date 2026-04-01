@@ -50,14 +50,9 @@ fn read_arboard() -> Option<Content> {
 fn choose_clipboard_content(arboard: Option<Content>, pb_text: Option<String>) -> Result<Content> {
     if let Some(c) = arboard {
         match c {
-            // pbpaste handles text reliably; if we have text from pbpaste, prefer it.
-            // Images are only available via arboard, so keep arboard for images.
-            Content::Text(_) => {
-                if let Some(t) = pb_text {
-                    return Ok(Content::Text(t));
-                }
-                Ok(c)
-            }
+            // Prefer arboard text. Some apps expose clipboard representations that
+            // pbpaste can decode differently, which may degrade Cyrillic glyphs.
+            Content::Text(_) => Ok(c),
             Content::Image { .. } => Ok(c),
         }
     } else if let Some(t) = pb_text {

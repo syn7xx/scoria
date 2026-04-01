@@ -47,7 +47,7 @@ irm https://github.com/syn7xx/scoria/raw/main/install.ps1 | iex
 For maintainers: winget manifests (portable **ZIP** installer) can be generated from the ZIP’s SHA256:
 
 ```powershell
-powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.2 -Sha256 "<sha256 of scoria-windows-x86_64.zip>"
+powershell -File scripts/windows/gen-winget-manifests.ps1 -Version 0.2.3 -Sha256 "<sha256 of scoria-windows-x86_64.zip>"
 ```
 
 Use the version you are releasing (see `version` in `Cargo.toml`). The script strips a leading `v` from `-Version` if present.

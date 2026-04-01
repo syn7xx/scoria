@@ -1,4 +1,4 @@
-use gtk::glib::clone;
+use gtk::glib::{clone, Propagation};
 use gtk::prelude::*;
 use gtk::{
     Box as GtkBox, Button, ButtonsType, CheckButton, ComboBoxText, DialogFlags, Entry,
@@ -48,12 +48,15 @@ pub fn open() {
     let window = Window::new(WindowType::Toplevel);
 
     window.set_title(i18n::settings_title());
-    window.set_default_size(560, -1);
+    // GNOME can choose a too-small initial height when content is inside
+    // ScrolledWindow; set a practical default and minimum content height.
+    window.set_default_size(560, 680);
     window.set_position(WindowPosition::Center);
 
     let scroll = ScrolledWindow::new(gtk::Adjustment::NONE, gtk::Adjustment::NONE);
 
     scroll.set_policy(PolicyType::Never, PolicyType::Automatic);
+    scroll.set_min_content_height(620);
 
     let root = GtkBox::new(Orientation::Vertical, 10);
 
@@ -131,14 +134,16 @@ pub fn open() {
 
     let lang_combo = ComboBoxText::new();
 
-    lang_combo.append(Some(""), "Auto / Авто");
     lang_combo.append(Some("en"), "English");
     lang_combo.append(Some("ru"), "Русский");
 
-    let lang_id: &str = if cfg.language.is_empty() {
-        ""
+    let lang_id = if cfg.language.is_empty() {
+        match i18n::current() {
+            i18n::Lang::Ru => "ru",
+            i18n::Lang::En => "en",
+        }
     } else {
-        &cfg.language
+        cfg.language.as_str()
     };
 
     lang_combo.set_active_id(Some(lang_id));
@@ -268,7 +273,10 @@ pub fn open() {
                 language: lang_combo
                     .active_id()
                     .map(|s| s.to_string())
-                    .unwrap_or_default(),
+                    .unwrap_or_else(|| match i18n::current() {
+                        i18n::Lang::Ru => "ru".to_string(),
+                        i18n::Lang::En => "en".to_string(),
+                    }),
             };
 
             match settings::validate_and_build(draft) {
@@ -315,8 +323,13 @@ pub fn open() {
         }
     ));
 
+    window.connect_delete_event(|_, _| {
+        gtk::main_quit();
+        Propagation::Proceed
+    });
     window.show_all();
     window.present();
+    gtk::main();
 }
 
 fn labeled_entry(container: &GtkBox, label: &str, initial: &str) -> Entry {

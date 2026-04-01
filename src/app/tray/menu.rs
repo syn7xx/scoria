@@ -1,14 +1,23 @@
-use anyhow::Result;
-use tray_icon::menu::{Menu, MenuItem};
-
+#[cfg(not(target_os = "linux"))]
 use crate::i18n;
 
+#[cfg(not(target_os = "linux"))]
 pub(crate) const MENU_SAVE: &str = "scoria.save";
+#[cfg(not(target_os = "linux"))]
 pub(crate) const MENU_SETTINGS: &str = "scoria.settings";
+#[cfg(not(target_os = "linux"))]
 pub(crate) const MENU_CONFIG: &str = "scoria.config";
+#[cfg(not(target_os = "linux"))]
 pub(crate) const MENU_UPDATE: &str = "scoria.update";
+#[cfg(not(target_os = "linux"))]
 pub(crate) const MENU_QUIT: &str = "scoria.quit";
 
+#[cfg(not(target_os = "linux"))]
+use anyhow::Result;
+#[cfg(not(target_os = "linux"))]
+use tray_icon::menu::{Menu, MenuItem};
+
+#[cfg(not(target_os = "linux"))]
 pub(crate) struct MenuItems {
     pub(crate) save: MenuItem,
     pub(crate) settings: MenuItem,
@@ -17,6 +26,7 @@ pub(crate) struct MenuItems {
     pub(crate) quit: MenuItem,
 }
 
+#[cfg(not(target_os = "linux"))]
 impl MenuItems {
     pub(crate) fn build() -> Result<(Menu, Self)> {
         let save = MenuItem::with_id(MENU_SAVE, i18n::menu_save(), true, None);

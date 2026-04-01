@@ -5,6 +5,7 @@ pub(super) static RU: T = T {
     menu_settings: "Настройки…",
     menu_config: "Открыть файл конфигурации…",
     menu_update: "Проверить обновления",
+    menu_update_checking: "Проверка обновлений…",
     menu_quit: "Выход",
     tooltip: "Scoria — буфер → Obsidian",
 

@@ -85,7 +85,7 @@ Categories=Utility;
 StartupNotify=false
 EOF
 
-  echo "Also installed ${app_desktop} (Walker / Omarchy)."
+  echo "Created desktop entry: ${app_desktop}."
 }
 
 ARCH="$(normalize_arch "$ARCH")"
@@ -170,7 +170,7 @@ if [[ "$OS" == "Darwin" ]]; then
 </dict>
 </plist>
 EOF
-  echo "Also installed ${APP} (Spotlight / Applications)."
+  echo "Created app bundle: ${APP} (for Spotlight / Applications)."
 elif [[ "$OS" == "Linux" ]]; then
   install_linux_desktop "$SCORIA_BIN" "$SCRIPT_DIR"
 fi

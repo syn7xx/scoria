@@ -122,10 +122,14 @@ define_class!(
         #[unsafe(method(applicationDidFinishLaunching:))]
         fn did_finish_launching(&self, notification: &NSNotification) {
             let mtm = self.mtm();
-            let app = notification.object()
-                .expect("notification object")
-                .downcast::<NSApplication>()
-                .expect("NSApplication");
+            let Some(object) = notification.object() else {
+                show_alert(mtm, i18n::alert_invalid(), "missing application notification object");
+                return;
+            };
+            let Some(app) = object.downcast::<NSApplication>() else {
+                show_alert(mtm, i18n::alert_invalid(), "invalid application notification object");
+                return;
+            };
 
             let mut cfg = match config::load_or_create() {
                 Ok(c) => c,
@@ -227,14 +231,17 @@ define_class!(
             lang_popup.setPullsDown(false);
             lang_popup.removeAllItems();
 
-            for name in ["Auto / Авто", "English", "Русский"] {
+            for name in ["English", "Русский"] {
                 lang_popup.addItemWithTitle(&NSString::from_str(name));
             }
 
             lang_popup.selectItemAtIndex(match cfg.language.as_str() {
-                "en" => 1,
-                "ru" => 2,
-                _ => 0,
+                "en" => 0,
+                "ru" => 1,
+                _ => match i18n::current() {
+                    i18n::Lang::Ru => 1,
+                    i18n::Lang::En => 0,
+                },
             });
             root.addArrangedSubview(&*lang_popup);
 
@@ -288,7 +295,11 @@ define_class!(
 
             window.setTitle(&NSString::from_str(i18n::settings_title()));
 
-            let view = window.contentView().expect("content view");
+            let Some(view) = window.contentView() else {
+                show_alert(mtm, i18n::alert_invalid(), "missing content view");
+                app.terminate(None);
+                return;
+            };
 
             root.setAutoresizingMask(
                 NSAutoresizingMaskOptions::ViewWidthSizable
@@ -397,35 +408,67 @@ define_class!(
             let mtm = self.mtm();
             let iv = self.ivars();
 
-            let target = match iv.target_popup.get().expect("popup").indexOfSelectedItem() {
+            let Some(target_popup) = iv.target_popup.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let target = match target_popup.indexOfSelectedItem() {
                 1 => SaveTarget::AppendToFile,
                 _ => SaveTarget::NewFileInFolder,
             };
 
-            let language = match iv.lang_popup.get().expect("lang").indexOfSelectedItem() {
-                1 => "en".to_string(),
-                2 => "ru".to_string(),
-                _ => String::new(),
+            let Some(lang_popup) = iv.lang_popup.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let language = match lang_popup.indexOfSelectedItem() {
+                1 => "ru".to_string(),
+                _ => "en".to_string(),
+            };
+
+            let Some(vault_field) = iv.vault.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(folder_field) = iv.folder.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(append_field) = iv.append_file.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(template_field) = iv.filename_template.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(ts_check) = iv.ts_check.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(hotkey_field) = iv.hotkey.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(autostart_check) = iv.autostart_check.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
+            };
+            let Some(auto_update_check) = iv.auto_update_check.get() else {
+                show_alert(mtm, i18n::alert_invalid(), "settings UI is not fully initialized");
+                return;
             };
 
             let draft = SettingsDraft {
-                vault_path: iv.vault.get().expect("vault").stringValue().to_string(),
+                vault_path: vault_field.stringValue().to_string(),
                 target,
-                folder: iv.folder.get().expect("folder").stringValue().to_string(),
-                append_file: iv.append_file.get().expect("append").stringValue().to_string(),
-                filename_template: iv
-                    .filename_template
-                    .get()
-                    .expect("template")
-                    .stringValue()
-                    .to_string(),
-                prepend_timestamp_header: iv.ts_check.get().expect("ts").state()
-                    == NSControlStateValueOn,
-                hotkey_raw: iv.hotkey.get().expect("hotkey").stringValue().to_string(),
-                autostart: iv.autostart_check.get().expect("autostart").state()
-                    == NSControlStateValueOn,
-                auto_update: iv.auto_update_check.get().expect("auto_update").state()
-                    == NSControlStateValueOn,
+                folder: folder_field.stringValue().to_string(),
+                append_file: append_field.stringValue().to_string(),
+                filename_template: template_field.stringValue().to_string(),
+                prepend_timestamp_header: ts_check.state() == NSControlStateValueOn,
+                hotkey_raw: hotkey_field.stringValue().to_string(),
+                autostart: autostart_check.state() == NSControlStateValueOn,
+                auto_update: auto_update_check.state() == NSControlStateValueOn,
                 language,
             };
 
