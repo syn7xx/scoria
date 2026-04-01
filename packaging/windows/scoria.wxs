@@ -12,6 +12,14 @@
     <Property Id="ARPPRODUCTICON" Value="ScoriaProductIcon" />
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <Property Id="CREATE_DESKTOP_SHORTCUT" Value="1" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Scoria now" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <CustomAction
+      Id="LaunchScoriaAfterInstall"
+      FileKey="ScoriaExeFile"
+      ExeCommand=""
+      Return="asyncNoWait"
+      Impersonate="yes" />
 
     <UIRef Id="ScoriaInstallUI" />
 
@@ -142,8 +150,11 @@
 
       <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2">1</Publish>
       <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">1</Publish>
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="ScoriaShortcutDlg" Order="2">1</Publish>
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ScoriaShortcutDlg" Order="2">1</Publish>
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="ScoriaShortcutDlg" Order="1">1</Publish>
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="ScoriaShortcutDlg" Order="1">1</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchScoriaAfterInstall" Order="1">
+        WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
+      </Publish>
     </UI>
   </Fragment>
 </Wix>

@@ -7,6 +7,15 @@ use crate::engine::config::{self, SaveTarget};
 use crate::engine::settings::{self, SettingsDraft, SettingsValidationError};
 use crate::i18n;
 
+#[cfg(target_os = "windows")]
+fn windows_ui_scale() -> f32 {
+    unsafe extern "system" {
+        fn GetDpiForSystem() -> u32;
+    }
+    let dpi = unsafe { GetDpiForSystem() };
+    (dpi as f32 / 96.0).clamp(1.0, 2.0)
+}
+
 fn is_checked(cb: &nwg::CheckBox) -> bool {
     cb.check_state() == nwg::CheckBoxState::Checked
 }
@@ -73,11 +82,14 @@ fn show_validation_error(window: &nwg::Window, error: SettingsValidationError) {
 
 pub fn open() -> Result<()> {
     nwg::init().context("initialize native-windows-gui")?;
+    let scale = windows_ui_scale();
+    let px = |value: i32| ((value as f32) * scale).round() as i32;
+    let font_size = (14.0 * scale).round().clamp(14.0, 24.0) as u32;
 
     let mut ui_font = nwg::Font::default();
     nwg::Font::builder()
         .family("Segoe UI")
-        .size(14)
+        .size(font_size)
         .build(&mut ui_font)
         .context("create settings UI font")?;
     nwg::Font::set_global_default(Some(ui_font));
@@ -87,7 +99,7 @@ pub fn open() -> Result<()> {
 
     let mut window = nwg::Window::default();
     nwg::Window::builder()
-        .size((640, 620))
+        .size((px(760), px(760)))
         .position((300, 200))
         .title(i18n::settings_title())
         .build(&mut window)
