@@ -65,7 +65,7 @@
         </Shortcut>
         <RemoveFolder Id="ProgramMenuScoriaFolder" On="uninstall" />
         <RegistryValue
-          Root="HKLM"
+          Root="HKCU"
           Key="Software\syn7xx\Scoria"
           Name="StartMenuShortcut"
           Type="integer"
@@ -86,7 +86,7 @@
           Icon="ScoriaProductIcon"
           Advertise="no" />
         <RegistryValue
-          Root="HKLM"
+          Root="HKCU"
           Key="Software\syn7xx\Scoria"
           Name="DesktopShortcut"
           Type="integer"
